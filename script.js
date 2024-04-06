@@ -13,6 +13,9 @@ class Tile {
         return (Math.sqrt(3) / 2) * this.sideLength;
     }
     draw() {
+        let group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        group.id = "Tile";
+
         let hexagon = createHexagon(this.x, this.y, this.sideLength);
         switch (this.name) {
             case "Brick":
@@ -31,33 +34,36 @@ class Tile {
                 hexagon.setAttribute("fill", "#004000");
                 break;
             case "Desert":
-                hexagon.setAttribute("fill", "#FFC080");
+                hexagon.setAttribute("fill", "#ffd080");
                 break;
         }
         hexagon.setAttribute("stroke", "black");
-        hexagon.setAttribute("stroke-width", "1");
+        hexagon.setAttribute("stroke-width", "2");
         hexagon.onmousedown = () => {
             console.log(this.name);
         };
-        this.svg.appendChild(hexagon);
+        group.appendChild(hexagon);
 
-        if (this.name == "Desert") return;
+        if (this.name != "Desert") {
+            let token = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            token.setAttribute("cx", this.x);
+            token.setAttribute("cy", this.y);
+            token.setAttribute("r", this.sideLength / 2.5);
+            token.setAttribute("fill", "#ffd080");
+            token.setAttribute("stroke", "black");
+            token.setAttribute("stroke-width", "2");
+            group.appendChild(token);
+    
+            let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", this.x);
+            text.setAttribute("y", this.y);
+            text.setAttribute("fill", (this.number == 6 || this.number == 8 ? "red" : "black"));
+            text.setAttribute("font-size", "25");
+            text.textContent = this.number;
+            group.appendChild(text);
+        }
 
-        let token = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        token.setAttribute("cx", this.x);
-        token.setAttribute("cy", this.y);
-        token.setAttribute("r", this.sideLength / 2.5);
-        token.setAttribute("fill", "#FFC080");
-        token.setAttribute("filter", "drop-shadow(1px 1px 1px rgb(0 0 0 / 1))");
-        this.svg.appendChild(token);
-
-        let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        text.setAttribute("x", this.x);
-        text.setAttribute("y", this.y);
-        text.setAttribute("fill", (this.number == 6 || this.number == 8 ? "red" : "black"));
-        text.setAttribute("font-size", "25");
-        text.textContent = this.number;
-        this.svg.appendChild(text);
+        this.svg.appendChild(group);
     }
 }
 
@@ -94,7 +100,7 @@ function generateMap(width) {
 }
 
 function drawMap(map, svg) {
-    const sideLength = 50;
+    const sideLength = 75;
     const inradius = (Math.sqrt(3) / 2) * sideLength;
 
     let maxLength = 0;
@@ -142,7 +148,7 @@ function shuffle(array) {
     return array;
 }
 
-class Robber {
+/*class Robber {
     constructor(svg) {
         this.svg = svg;
 
@@ -159,53 +165,57 @@ class Robber {
         this.svg.appendChild(robber);
     }
 
-}
+}*/
 
 class Building {
-    constructor(svg) {
-        this.type = "Settlement";
+    constructor(type, svg) {
+        this.type = type;
         this.svg = svg;
+        this.shape = `0,0 10,-10 20,0 20,20 0,20`;
+        if (this.type == "City") {
+            this.shape = `0,0 10,-10 20,0 20,10 40,10 40,30 0,30`;
+        }
 
         this.draw();
     }
     draw() {
-        let building = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        building.setAttribute("id", "building");
-        building.setAttribute("x", "100");
-        building.setAttribute("y", "100");
-        building.setAttribute("width", "20");
-        building.setAttribute("height", "10");
-        building.setAttribute("fill", "blue");
-        building.setAttribute("stroke", "black");
-        building.setAttribute("stroke-width", "1");
-        dragElement(building);
-        this.svg.appendChild(building);
+        this.polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        this.polygon.setAttribute("fill", "red");
+        this.polygon.setAttribute("points", this.shape);
+        this.move(200, 200)
+        this.polygon.setAttribute("stroke", "black");
+        this.polygon.setAttribute("stroke-width", "2");
+        this.polygon.onmousedown = this.dragMouseDown.bind(this); // Bind the event handler to the instance
+        this.svg.appendChild(this.polygon);
     }
-}
+    move(x, y) {
+        this.polygon.setAttribute("points", this.shape.split(" ").map(point => {
+            let coords = point.split(",");
+            return `${parseInt(coords[0]) + x},${parseInt(coords[1]) + y}`;
+        }).join(" "));
+    }
 
-function dragElement(element) {
-    element.onmousedown = dragMouseDown;
-
-    function dragMouseDown(e) {
+    dragMouseDown(e) {
         e.preventDefault();
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
+        document.onmouseup = this.closeDragElement.bind(this); // Bind the event handler to the instance
+        document.onmousemove = this.elementDrag.bind(this); // Bind the event handler to the instance
+        console.log("mousedown");
     }
 
-    function elementDrag(e) {
+    elementDrag(e) {
         e.preventDefault();
-        element.setAttribute("cx", e.clientX);
-        element.setAttribute("cy", e.clientY);
+        this.move(e.clientX, e.clientY);
+        console.log("mousemove");
     }
 
-    function closeDragElement() {
+    closeDragElement() {
         document.onmouseup = null;
         document.onmousemove = null;
     }
 }
 
 let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-svg.setAttribute("width", "1000");
+svg.setAttribute("width", "100%");
 svg.setAttribute("height", "1000");
 
 const resources = ["Brick", "Wool", "Ore", "Grain", "Lumber"];
@@ -220,6 +230,8 @@ const map = [
 
 drawMap(generateMap(5), svg);
 
-new Robber(svg);
+new Building("Settlement", svg);
+
+new Building("City", svg);
 
 document.body.appendChild(svg);

@@ -3,6 +3,10 @@
     padding: 0;
 }
 
+html {
+    background-color: #00C0ff;
+}
+
 text {
     text-anchor: middle;
     dominant-baseline: middle;
