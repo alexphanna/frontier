@@ -16,22 +16,22 @@ class Tile {
         let hexagon = createHexagon(this.x, this.y, this.sideLength);
         switch (this.name) {
             case "Brick":
-                hexagon.setAttribute("fill", "brown");
+                hexagon.setAttribute("fill", "#800000");
                 break;
             case "Wool":
-                hexagon.setAttribute("fill", "white");
+                hexagon.setAttribute("fill", "#00C000");
                 break;
             case "Ore":
-                hexagon.setAttribute("fill", "gray");
+                hexagon.setAttribute("fill", "#808080");
                 break;
             case "Grain":
-                hexagon.setAttribute("fill", "yellow");
+                hexagon.setAttribute("fill", "#ffff00");
                 break;
             case "Lumber":
-                hexagon.setAttribute("fill", "green");
+                hexagon.setAttribute("fill", "#004000");
                 break;
             case "Desert":
-                hexagon.setAttribute("fill", "tan");
+                hexagon.setAttribute("fill", "#FFC080");
                 break;
         }
         hexagon.setAttribute("stroke", "black");
@@ -47,7 +47,7 @@ class Tile {
         token.setAttribute("cx", this.x);
         token.setAttribute("cy", this.y);
         token.setAttribute("r", this.sideLength / 2.5);
-        token.setAttribute("fill", "tan");
+        token.setAttribute("fill", "#FFC080");
         token.setAttribute("filter", "drop-shadow(1px 1px 1px rgb(0 0 0 / 1))");
         this.svg.appendChild(token);
 
@@ -142,6 +142,25 @@ function shuffle(array) {
     return array;
 }
 
+class Robber {
+    constructor(svg) {
+        this.svg = svg;
+
+        this.draw();
+    }
+    draw() {
+        let robber = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        robber.setAttribute("cx", "100");
+        robber.setAttribute("cy", "100");
+        robber.setAttribute("r", "15");
+        robber.setAttribute("fill", "black");
+        robber.setAttribute("filter", "drop-shadow(1px 1px 1px rgb(0 0 0 / 1))");
+        dragElement(robber);
+        this.svg.appendChild(robber);
+    }
+
+}
+
 class Building {
     constructor(svg) {
         this.type = "Settlement";
@@ -175,8 +194,8 @@ function dragElement(element) {
 
     function elementDrag(e) {
         e.preventDefault();
-        element.setAttribute("x", e.clientX);
-        element.setAttribute("y", e.clientY);
+        element.setAttribute("cx", e.clientX);
+        element.setAttribute("cy", e.clientY);
     }
 
     function closeDragElement() {
@@ -201,6 +220,6 @@ const map = [
 
 drawMap(generateMap(5), svg);
 
-new Building(svg);
+new Robber(svg);
 
 document.body.appendChild(svg);
