@@ -17,6 +17,12 @@ class Tile {
         group.id = "Tile";
 
         let hexagon = createHexagon(this.x, this.y, this.sideLength);
+
+        for (let point of hexagon.getAttribute("points").split(" ")) {
+            if (vertices.filter(vertex => vertex.join(",") == point).length == 0) {
+                vertices.push(point.split(","));
+            }
+        }
         switch (this.name) {
             case "Brick":
                 hexagon.setAttribute("fill", "#800000");
@@ -58,7 +64,7 @@ class Tile {
             text.setAttribute("x", this.x);
             text.setAttribute("y", this.y);
             text.setAttribute("fill", (this.number == 6 || this.number == 8 ? "red" : "black"));
-            text.setAttribute("font-size", "25");
+            text.setAttribute("font-size", "30");
             text.textContent = this.number;
             group.appendChild(text);
         }
@@ -102,6 +108,7 @@ function generateMap(width) {
 function drawMap(map, svg) {
     const sideLength = 75;
     const inradius = (Math.sqrt(3) / 2) * sideLength;
+    let tiles = [];
 
     let maxLength = 0;
     for (let i = 0; i < map.length; i++) {
@@ -113,19 +120,21 @@ function drawMap(map, svg) {
 
     for (let i = 0; i < map.length; i++) {
         for (let j = 0; j < map[i].length; j++) {
-            new Tile((map[i][j] == 6 ? "Desert" : resources[map[i][j]]), (map[i][j] == 6 ? "" : distr.pop()), 100 + inradius * 2 * j + (maxLength - map[i].length) * inradius, 100 + sideLength * 1.5 * i, sideLength, svg);
+            tiles.push(new Tile((map[i][j] == 6 ? "Desert" : resources[map[i][j]]), (map[i][j] == 6 ? "" : distr.pop()), 100 + inradius * 2 * j + (maxLength - map[i].length) * inradius, 100 + sideLength * 1.5 * i, sideLength, svg));
         }
     }
+    return tiles;
 }
 
 function createHexagon(x, y, sideLength) {
     let hexagon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-    let points = "";
+    let vertices = "";
     for (let i = 0; i < 6; i++) {
         const angle = 2 * Math.PI / 6 * i - Math.PI / 2;
-        points += `${x + sideLength * Math.cos(angle)},${y + sideLength * Math.sin(angle)} `;
+        vertices += `${x + sideLength * Math.cos(angle)},${y + sideLength * Math.sin(angle)} `;
     }
-    hexagon.setAttribute("points", points);
+    hexagon.setAttribute("points", vertices);
+    console.log(vertices);
     return hexagon;
 }
 
@@ -148,53 +157,7 @@ function shuffle(array) {
     return array;
 }
 
-/*class Robber {
-    constructor(svg) {
-        this.svg = svg;
-
-        this.draw();
-    }
-    draw() {
-        let robber = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        robber.setAttribute("cx", "100");
-        robber.setAttribute("cy", "100");
-        robber.setAttribute("r", "15");
-        robber.setAttribute("fill", "black");
-        robber.setAttribute("filter", "drop-shadow(1px 1px 1px rgb(0 0 0 / 1))");
-        dragElement(robber);
-        this.svg.appendChild(robber);
-    }
-
-}*/
-
-class Building {
-    constructor(type, svg) {
-        this.type = type;
-        this.svg = svg;
-        this.shape = `0,0 10,-10 20,0 20,20 0,20`;
-        if (this.type == "City") {
-            this.shape = `0,0 10,-10 20,0 20,10 40,10 40,30 0,30`;
-        }
-
-        this.draw();
-    }
-    draw() {
-        this.polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        this.polygon.setAttribute("fill", "red");
-        this.polygon.setAttribute("points", this.shape);
-        this.move(200, 200)
-        this.polygon.setAttribute("stroke", "black");
-        this.polygon.setAttribute("stroke-width", "2");
-        this.polygon.onmousedown = this.dragMouseDown.bind(this); // Bind the event handler to the instance
-        this.svg.appendChild(this.polygon);
-    }
-    move(x, y) {
-        this.polygon.setAttribute("points", this.shape.split(" ").map(point => {
-            let coords = point.split(",");
-            return `${parseInt(coords[0]) + x},${parseInt(coords[1]) + y}`;
-        }).join(" "));
-    }
-
+class draggableElement {
     dragMouseDown(e) {
         e.preventDefault();
         document.onmouseup = this.closeDragElement.bind(this); // Bind the event handler to the instance
@@ -211,6 +174,82 @@ class Building {
     closeDragElement() {
         document.onmouseup = null;
         document.onmousemove = null;
+        this.snap();
+    }
+}
+
+class Robber extends draggableElement {
+    constructor(radius, svg) {
+        super();
+        this.svg = svg;
+        this.radius = radius;
+
+        this.draw();
+    }
+    draw() {
+        this.robber = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        this.robber.setAttribute("cx", "100");
+        this.robber.setAttribute("cy", "100");
+        this.robber.setAttribute("r", this.radius);
+        this.robber.setAttribute("fill", "black");
+        this.robber.onmousedown = this.dragMouseDown.bind(this);
+        this.svg.appendChild(this.robber);
+    }
+    move(x, y) {
+        this.robber.setAttribute("cx", x);
+        this.robber.setAttribute("cy", y);
+    }
+    snap() {
+        for (let tile of tiles) {
+            if (Math.sqrt((this.robber.getAttribute("cx") - tile.x) ** 2 + (this.robber.getAttribute("cy") - tile.y) ** 2) < tile.sideLength) {
+                this.move(tile.x, tile.y);
+                return;
+            }
+        }
+    }
+}
+
+class Building extends draggableElement {
+    constructor(x, y, color, type, svg) {
+        super();
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.type = type;
+        this.svg = svg;
+        this.shape = `0,0 10,-10 20,0 20,20 0,20`;
+        if (this.type == "City") {
+            this.shape = `0,0 10,-10 20,0 20,10 40,10 40,30 0,30`;
+        }
+
+        this.draw();
+    }
+    draw() {
+        this.polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        this.polygon.setAttribute("fill", this.color);
+        this.polygon.setAttribute("points", this.shape);
+        this.move(this.x, this.y);
+        this.polygon.setAttribute("stroke", "black");
+        this.polygon.setAttribute("stroke-width", "2");
+        this.polygon.onmousedown = this.dragMouseDown.bind(this); // Bind the event handler to the instance
+        this.svg.appendChild(this.polygon);
+    }
+    move(x, y) {
+        this.polygon.setAttribute("points", this.shape.split(" ").map(point => {
+            let coords = point.split(",");
+            return `${parseInt(coords[0]) + x},${parseInt(coords[1]) + y}`;
+        }).join(" "));
+    }
+    snap() {
+        let closestVertex = null;
+        let closestDistance = Infinity;
+        for (let vertex of vertices) {
+            if (Math.sqrt((this.polygon.getAttribute("points").split(" ")[0].split(",")[0] - vertex[0]) ** 2 + (this.polygon.getAttribute("points").split(" ")[0].split(",")[1] - vertex[1]) ** 2) < closestDistance) {
+                closestVertex = vertex;
+                closestDistance = Math.sqrt((this.polygon.getAttribute("points").split(" ")[0].split(",")[0] - vertex[0]) ** 2 + (this.polygon.getAttribute("points").split(" ")[0].split(",")[1] - vertex[1]) ** 2);
+            }
+        }
+        this.move(parseInt(closestVertex[0]) - this.polygon.getBBox().width / 2, parseInt(closestVertex[1]) - this.polygon.getBBox().width / 2);
     }
 }
 
@@ -228,10 +267,16 @@ const map = [
     [1, 1, 1],
 ];
 
-drawMap(generateMap(5), svg);
+const vertices = [];
+const tiles = drawMap(generateMap(5), svg);
 
-new Building("Settlement", svg);
+new Building(50, 100, "red", "Settlement", svg);
 
-new Building("City", svg);
+new Building(50, 120, "blue", "Settlement", svg);
+
+new Building(100, 100, "lime", "Settlement", svg);
+
+new Building(100, 120, "purple", "City", svg);
+new Robber(20, svg);
 
 document.body.appendChild(svg);
