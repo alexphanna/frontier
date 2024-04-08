@@ -320,6 +320,7 @@ class Building extends draggableElement {
         this.color = color;
         this.type = type;
         this.svg = svg;
+        this.nearbyTiles = [];
 
         switch (this.type) {
             case "Settlement":
@@ -359,6 +360,17 @@ class Building extends draggableElement {
             }
         }
         this.move(closestPoint[0] - this.polygon.getBBox().width / 2, closestPoint[1] - this.polygon.getBBox().width / 2);
+        
+        // when snapped record what resources the settlement is next to
+        this.nearbyTiles = [];
+        for (let tile of map.tiles) {
+            for (let point of tile.hexagon.getAttribute("points").split(" ")) {
+                if (point.split(",")[0] == closestPoint[0] && point.split(",")[1] == closestPoint[1]) {
+                    this.nearbyTiles.push(tile.name);
+                }
+            }
+        }
+        document.getElementById("nearbyTiles").innerHTML = this.nearbyTiles.toString();
     }
 }
 
