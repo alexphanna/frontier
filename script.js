@@ -159,6 +159,7 @@ class Map {
                 const vertex1 = hexagonPoints[i].split(",");
                 const vertex2 = hexagonPoints[(i + 1) % (hexagonPoints.length - 1)].split(",");
                 let edge = [Math.min(vertex1[0], vertex2[0]) + Math.abs(vertex1[0] - vertex2[0]) / 2, Math.min(vertex1[1], vertex2[1]) + Math.abs(vertex1[1] - vertex2[1]) / 2];
+                edge.push(Math.atan2(vertex1[1] - vertex2[1], vertex1[0] - vertex2[0]) * 180 / Math.PI);
                 if (this.edges.filter(e => e.join(",") == edge.join(",")).length == 0) {
                     this.edges.push(edge);
                 }
@@ -346,8 +347,8 @@ class Road extends draggableElement {
     draw() {
         this.rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         this.rect.setAttribute("fill", this.color);
-        this.rect.setAttribute("width", "10");
-        this.rect.setAttribute("height", "40");
+        this.rect.setAttribute("width", "40");
+        this.rect.setAttribute("height", "10");
         this.move(this.x, this.y);
         this.rect.onmousedown = this.dragMouseDown.bind(this);
         this.svg.appendChild(this.rect);
@@ -367,6 +368,7 @@ class Road extends draggableElement {
                 closestDistance = Math.sqrt((this.rect.getAttribute("x") - point[0]) ** 2 + (this.rect.getAttribute("y") - point[1]) ** 2);
             }
         }
+        this.rect.setAttribute("transform", `rotate(${closestPoint[2]})`);
         this.move(parseInt(closestPoint[0]) - this.rect.getAttribute("width") / 2, parseInt(closestPoint[1]) - this.rect.getAttribute("height") / 2);
     }
 }
@@ -407,7 +409,7 @@ svg.setAttribute("height", "650");
 
 let map = new Map(5);
 
-let player = new Player("Alex", "red");
+let player = new Player("Alex", "blue");
 
 let dice1 = new Dice();
 let dice2 = new Dice();
