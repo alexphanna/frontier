@@ -5,6 +5,12 @@
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
+    <svg width="100%" height="650" id="board">
+        <g id="tiles"></g>
+        <g id="roads"></g>
+        <g id="buildings"></g>
+        <!-- Elements being dragged go here -->
+    </svg>
     <div id="buttons">
         <button id="buildSettlement" onclick="player.buildSettlement()">Build Settlement</button>
         <button id="buildCity" onclick="player.buildCity()">Build City</button>
@@ -13,11 +19,12 @@
     </div>
     <br>
     <div id="inventory">
+        <p id="nearbyTiles"></p>
         <p id="roll"></p>
         <br>
-        <p id="resources" ></p>
+        <p id="resourcesInfo" ></p>
         <br>
-        <p id="buildings" style="vertical-align: top;"></p>
+        <p id="buildingsInfo" style="vertical-align: top;"></p>
     </div>
     <script src="script.js"></script>
 </body>

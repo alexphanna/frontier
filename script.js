@@ -13,6 +13,7 @@ class Player {
         this.cities = 4;
         this.roads = 15;
         this.victoryPoints = 0;
+        this.buildings = [];
 
         this.updateInfo();
     }
@@ -23,8 +24,8 @@ class Player {
         return this.resources["Ore"] >= 3 && this.resources["Grain"] >= 2 && this.cities > 0;
     }
     updateInfo() {
-        document.getElementById("resources").innerHTML = `Brick: ${this.resources["Brick"]}<br>Wool: ${this.resources["Wool"]}<br>Ore: ${this.resources["Ore"]}<br>Grain: ${this.resources["Grain"]}<br>Lumber: ${this.resources["Lumber"]}`;
-        document.getElementById("buildings").innerHTML = `Settlements: ${this.settlements}<br>Cities: ${this.cities}<br>Roads: ${this.roads}`;
+        document.getElementById("resourcesInfo").innerHTML = `Brick: ${this.resources["Brick"]}<br>Wool: ${this.resources["Wool"]}<br>Ore: ${this.resources["Ore"]}<br>Grain: ${this.resources["Grain"]}<br>Lumber: ${this.resources["Lumber"]}`;
+        document.getElementById("buildingsInfo").innerHTML = `Settlements: ${this.settlements}<br>Cities: ${this.cities}<br>Roads: ${this.roads}`;
         if (!this.canBuildSettlement) {
             document.getElementById("buildSettlement").disabled = true;
         }
@@ -41,7 +42,7 @@ class Player {
             this.settlements--;
             this.victoryPoints++;
             this.updateInfo();
-            new Building(100, 100, this.color, "Settlement", svg);
+            this.buildings.push(new Building(100, 100, this.color, "settlement"));
         }
     }
     buildCity() {
@@ -51,7 +52,7 @@ class Player {
             this.cities--;
             this.victoryPoints++;
             this.updateInfo();
-            new Building(100, 100, this.color, "City", svg);
+            this.buildings.push(new Building(100, 100, this.color, "city"));
         }
     }
     buildRoad() {
@@ -59,7 +60,7 @@ class Player {
         this.resources["Brick"] -= 1;
         this.resources["Lumber"] -= 1;
         this.updateInfo();
-        new Road(100, 100, this.color, svg);
+        new Road(100, 100, this.color);
     }
 }
 
@@ -82,6 +83,21 @@ class Dice {
                     tile.token.setAttribute("fill", "#ffe0a0");
                 }
             }
+        }
+        for (let player of players) {
+            for (let building of player.buildings) {
+                for (let tile of building.nearbyTiles) {
+                    if (tile.number == roll) {
+                        if (building.polygon.id == "settlement") {
+                            player.resources[tile.name]++;
+                        }
+                        else if (building.polygon.id == "city") {
+                            player.resources[tile.name] += 2;
+                        }
+                    }
+                }
+            }
+            player.updateInfo();
         }
     }
 }
@@ -132,9 +148,6 @@ class Map {
             this.numberMap.push(numberRow);
         }
 
-        this.draw(svg, resources);
-    }
-    draw(svg, resources) {
         const sideLength = 75;
         const inradius = (Math.sqrt(3) / 2) * sideLength;
         this.tiles = [];
@@ -148,10 +161,10 @@ class Map {
         for (let i = 0; i < this.resourceMap.length; i++) {
             for (let j = 0; j < this.resourceMap[i].length; j++) {
                 if (this.resourceMap[i][j] == 6) {
-                    this.tiles.push(new Tile("Desert", 7, 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius, 100 + sideLength * 1.5 * i, sideLength, svg));
+                    this.tiles.push(new Tile("Desert", 7, 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius, 100 + sideLength * 1.5 * i, sideLength));
                 }
                 else {
-                    this.tiles.push(new Tile(resources[this.resourceMap[i][j]], this.numberMap[i][j], 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius, 100 + sideLength * 1.5 * i, sideLength, svg));
+                    this.tiles.push(new Tile(resources[this.resourceMap[i][j]], this.numberMap[i][j], 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius, 100 + sideLength * 1.5 * i, sideLength));
                 }
                 this.tilesPoints.push([100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius, 100 + sideLength * 1.5 * i]);
             }
@@ -185,24 +198,15 @@ class Map {
 }
 
 class Tile {
-    constructor(name, number, x, y, sideLength, svg) {
+    constructor(name, number, x, y, sideLength) {
         this.name = name;
         this.number = number;
         this.x = x;
         this.y = y;
         this.sideLength = sideLength;
-        this.svg = svg;
 
-        this.draw();
-    }
-
-    get inradius() {
-        return (Math.sqrt(3) / 2) * this.sideLength;
-    }
-
-    draw() {
         let group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        group.id = "Tile";
+        group.id = "tile";
 
         this.hexagon = createHexagon(this.x, this.y, this.sideLength);
 
@@ -247,19 +251,24 @@ class Tile {
             group.appendChild(this.text);
         }
 
-        this.svg.appendChild(group);
+        document.getElementById("tiles").appendChild(group);
+    }
+
+    get inradius() {
+        return (Math.sqrt(3) / 2) * this.sideLength;
+    }
+
+    toString() {
+        return `${this.name} ${this.number}`;
     }
 }
 
 class draggableElement {
-    constructor(snapPoints) {
-        this.snapPoints = snapPoints;
-    }
-
     dragMouseDown(e) {
         e.preventDefault();
         document.onmouseup = this.closeDragElement.bind(this);
         document.onmousemove = this.elementDrag.bind(this)
+        this.raise();
     }
 
     elementDrag(e) {
@@ -270,81 +279,78 @@ class draggableElement {
     closeDragElement() {
         document.onmouseup = null;
         document.onmousemove = null;
+        this.lower();
         this.snap();
     }
 }
 
 class Robber extends draggableElement {
-    constructor(radius, svg) {
+    constructor(radius) {
         super();
         this.snapPoints = map.tilesPoints;
-        this.svg = svg;
         this.radius = radius;
 
-        this.draw();
-    }
-    draw() {
-        this.circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        this.circle.setAttribute("cx", "100");
-        this.circle.setAttribute("cy", "100");
-        this.circle.setAttribute("r", this.radius);
-        this.circle.setAttribute("fill", "black");
-        this.circle.onmousedown = this.dragMouseDown.bind(this);
-        this.svg.appendChild(this.circle);
+        this.element = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        this.element.id = "robber";
+        this.element.setAttribute("cx", "100");
+        this.element.setAttribute("cy", "100");
+        this.element.setAttribute("r", this.radius);
+        this.element.setAttribute("fill", "black");
+        this.element.onmousedown = this.dragMouseDown.bind(this);
+        document.getElementById("board").appendChild(this.element);
     }
 
     move(x, y) {
-        this.circle.setAttribute("cx", x);
-        this.circle.setAttribute("cy", y);
+        this.element.setAttribute("cx", x);
+        this.element.setAttribute("cy", y);
     }
     
     snap() {
         let closestPoint = null;
         let closestDistance = Infinity;
         for (let point of this.snapPoints) {
-            if (Math.sqrt((this.circle.getAttribute("cx") - point[0]) ** 2 + (this.circle.getAttribute("cy") - point[1]) ** 2) < closestDistance) {
+            if (Math.sqrt((this.element.getAttribute("cx") - point[0]) ** 2 + (this.element.getAttribute("cy") - point[1]) ** 2) < closestDistance) {
                 closestPoint = point;
-                closestDistance = Math.sqrt((this.circle.getAttribute("cx") - point[0]) ** 2 + (this.circle.getAttribute("cy") - point[1]) ** 2);
+                closestDistance = Math.sqrt((this.element.getAttribute("cx") - point[0]) ** 2 + (this.element.getAttribute("cy") - point[1]) ** 2);
             }
         }
-        this.move(closestPoint[0] - this.circle.getAttribute("radius"), closestPoint[1] - this.circle.getAttribute("radius"));
+        this.move(closestPoint[0] - this.element.getAttribute("radius"), closestPoint[1] - this.element.getAttribute("radius"));
     }
+
+    // robber does not raise or lower
+    raise() { }
+    lower() { }
 }
 
 class Building extends draggableElement {
-    constructor(x, y, color, type, svg) {
+    constructor(x, y, color, id) {
         super();
         this.snapPoints = map.vertices;
         this.x = x;
         this.y = y;
         this.color = color;
-        this.type = type;
-        this.svg = svg;
         this.nearbyTiles = [];
 
-        switch (this.type) {
-            case "Settlement":
+        switch (id) {
+            case "settlement":
                 this.shape = `0,0 10,-10 20,0 20,20 0,20`;
                 break;
-            case "City":
+            case "city":
                 this.shape = `0,0 10,-10 20,0 20,10 40,10 40,30 0,30`;
                 break;
         }
 
-        this.draw();
-    }
-
-    draw() {
-        this.polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        this.polygon.setAttribute("fill", this.color);
-        this.polygon.setAttribute("points", this.shape);
+        this.element = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        this.element.setAttribute("id", id);
+        this.element.setAttribute("fill", this.color);
+        this.element.setAttribute("points", this.shape);
         this.move(this.x, this.y);
-        this.polygon.onmousedown = this.dragMouseDown.bind(this); // Bind the event handler to the instance
-        this.svg.appendChild(this.polygon);
+        this.element.onmousedown = this.dragMouseDown.bind(this); // Bind the event handler to the instance
+        document.getElementById("buildings").appendChild(this.element);
     }
 
     move(x, y) {
-        this.polygon.setAttribute("points", this.shape.split(" ").map(point => {
+        this.element.setAttribute("points", this.shape.split(" ").map(point => {
             let coords = point.split(",");
             return `${parseInt(coords[0]) + x},${parseInt(coords[1]) + y}`;
         }).join(" "));
@@ -354,64 +360,82 @@ class Building extends draggableElement {
         let closestPoint = null;
         let closestDistance = Infinity;
         for (let point of this.snapPoints) {
-            if (Math.sqrt((this.polygon.getAttribute("points").split(" ")[0].split(",")[0] - point[0]) ** 2 + (this.polygon.getAttribute("points").split(" ")[0].split(",")[1] - point[1]) ** 2) < closestDistance) {
+            if (Math.sqrt((this.element.getAttribute("points").split(" ")[0].split(",")[0] - point[0]) ** 2 + (this.element.getAttribute("points").split(" ")[0].split(",")[1] - point[1]) ** 2) < closestDistance) {
                 closestPoint = point;
-                closestDistance = Math.sqrt((this.polygon.getAttribute("points").split(" ")[0].split(",")[0] - point[0]) ** 2 + (this.polygon.getAttribute("points").split(" ")[0].split(",")[1] - point[1]) ** 2);
+                closestDistance = Math.sqrt((this.element.getAttribute("points").split(" ")[0].split(",")[0] - point[0]) ** 2 + (this.element.getAttribute("points").split(" ")[0].split(",")[1] - point[1]) ** 2);
             }
         }
-        this.move(closestPoint[0] - this.polygon.getBBox().width / 2, closestPoint[1] - this.polygon.getBBox().width / 2);
+        this.move(closestPoint[0] - this.element.getBBox().width / 2, closestPoint[1] - this.element.getBBox().width / 2);
         
         // when snapped record what resources the settlement is next to
         this.nearbyTiles = [];
         for (let tile of map.tiles) {
             for (let point of tile.hexagon.getAttribute("points").split(" ")) {
-                if (point.split(",")[0] == closestPoint[0] && point.split(",")[1] == closestPoint[1]) {
-                    this.nearbyTiles.push(tile.name);
+                if (Math.abs(point.split(",")[0] - closestPoint[0]) < 0.01 
+                    && Math.abs(point.split(",")[1] - closestPoint[1]) < 0.01) {
+                    this.nearbyTiles.push(tile);
                 }
             }
         }
         document.getElementById("nearbyTiles").innerHTML = this.nearbyTiles.toString();
     }
+
+    raise() {
+        document.getElementById("buildings").removeChild(this.element);
+        document.getElementById("board").appendChild(this.element);
+    }
+
+    lower() {
+        document.getElementById("board").removeChild(this.element);
+        document.getElementById("buildings").appendChild(this.element);
+    }
 }
 
 class Road extends draggableElement {
-    constructor(x, y, color, svg) {
+    constructor(x, y, color) {
         super();
         this.snapPoints = map.edges;
         this.x = x;
         this.y = y;
         this.color = color;
-        this.svg = svg;
 
-        this.draw();
-    }
-
-    draw() {
-        this.rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        this.rect.setAttribute("fill", this.color);
-        this.rect.setAttribute("width", "40");
-        this.rect.setAttribute("height", "10");
+        this.element = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        this.element.id = "road";
+        this.element.setAttribute("fill", this.color);
+        this.element.setAttribute("width", "40");
+        this.element.setAttribute("height", "10");
         this.move(this.x, this.y);
-        this.rect.onmousedown = this.dragMouseDown.bind(this);
-        this.svg.appendChild(this.rect);
+        this.element.onmousedown = this.dragMouseDown.bind(this);
+        document.getElementById("roads").appendChild(this.element);
     }
 
     move(x, y) {
-        this.rect.setAttribute("x", x);
-        this.rect.setAttribute("y", y);
+        this.element.setAttribute("x", x);
+        this.element.setAttribute("y", y);
     }
 
     snap() {
         let closestPoint = null;
         let closestDistance = Infinity;
         for (let point of this.snapPoints) {
-            if (Math.sqrt((this.rect.getAttribute("x") - point[0]) ** 2 + (this.rect.getAttribute("y") - point[1]) ** 2) < closestDistance) {
+            if (Math.sqrt((this.element.getAttribute("x") - point[0]) ** 2 + (this.element.getAttribute("y") - point[1]) ** 2) < closestDistance) {
                 closestPoint = point;
-                closestDistance = Math.sqrt((this.rect.getAttribute("x") - point[0]) ** 2 + (this.rect.getAttribute("y") - point[1]) ** 2);
+                closestDistance = Math.sqrt((this.element.getAttribute("x") - point[0]) ** 2 + (this.element.getAttribute("y") - point[1]) ** 2);
             }
         }
-        this.rect.setAttribute("transform", `rotate(${closestPoint[2]})`);
-        this.move(closestPoint[0] - this.rect.getAttribute("width") / 2, closestPoint[1] - this.rect.getAttribute("height") / 2);
+        this.element.setAttribute("transform", `rotate(${closestPoint[2]})`);
+        this.move(closestPoint[0] - this.element.getAttribute("width") / 2, closestPoint[1] - this.element.getAttribute("height") / 2);
+    }
+
+    raise() {
+        document.getElementById("roads").removeChild(this.element);
+        document.getElementById("board").appendChild(this.element);
+        this.element.setAttribute("transform", `rotate(0)`);
+    }
+
+    lower() {
+        document.getElementById("board").removeChild(this.element);
+        document.getElementById("roads").appendChild(this.element);
     }
 }
 
@@ -445,16 +469,12 @@ function shuffle(array) {
     return array;
 }
 
-let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-svg.setAttribute("width", "100%");
-svg.setAttribute("height", "650");
-
 let map = new Map(5);
 
 let player = new Player("Alex", "blue");
 
+let players = [player];
+
 let dice = new Dice();
 
-new Robber(20, svg);
-
-document.body.insertBefore(svg, document.body.firstChild);
+new Robber(20);
