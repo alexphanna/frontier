@@ -57,17 +57,22 @@ class Player {
     }
     buildRoad() {
         this.roads--;
-        this.resources["Brick"] -= 1;
-        this.resources["Lumber"] -= 1;
+        this.resources["Brick"]--;
+        this.resources["Lumber"]--;
         this.updateInfo();
         new Road(100, 100, this.color);
     }
 }
 
+/**
+ * Represents a pair of dice
+ */
 class Dice {
     roll() {
         const roll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
         document.getElementById("roll").innerHTML = `roll: ${roll}`;
+
+        // token highlighting
         for (let tile of map.tiles) {
             if (tile.name == "Desert") {
                 continue;
@@ -84,14 +89,16 @@ class Dice {
                 }
             }
         }
+
+        // resource allocation
         for (let player of players) {
             for (let building of player.buildings) {
                 for (let tile of building.nearbyTiles) {
                     if (tile.number == roll) {
-                        if (building.polygon.id == "settlement") {
+                        if (building.element.id == "settlement") {
                             player.resources[tile.name]++;
                         }
-                        else if (building.polygon.id == "city") {
+                        else if (building.element.id == "city") {
                             player.resources[tile.name] += 2;
                         }
                     }
@@ -151,22 +158,23 @@ class Map {
         const sideLength = 75;
         const inradius = (Math.sqrt(3) / 2) * sideLength;
         this.tiles = [];
-        this.tilesPoints = [];
     
         let maxLength = 0;
         for (let i = 0; i < this.resourceMap.length; i++) {
             if (this.resourceMap[i].length > maxLength) maxLength = this.resourceMap[i].length;
         }
+
+        const svg = document.getElementById("board");
     
         for (let i = 0; i < this.resourceMap.length; i++) {
             for (let j = 0; j < this.resourceMap[i].length; j++) {
                 if (this.resourceMap[i][j] == 6) {
-                    this.tiles.push(new Tile("Desert", 7, 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius, 100 + sideLength * 1.5 * i, sideLength));
+                    this.desert = new Tile("Desert", 7, 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius + (window.innerWidth - (maxLength + .5) * inradius * 2) / 2, 100 + sideLength * 1.5 * i, sideLength);
+                    this.tiles.push(this.desert);
                 }
                 else {
-                    this.tiles.push(new Tile(resources[this.resourceMap[i][j]], this.numberMap[i][j], 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius, 100 + sideLength * 1.5 * i, sideLength));
+                    this.tiles.push(new Tile(resources[this.resourceMap[i][j]], this.numberMap[i][j], 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius + (window.innerWidth - (maxLength + .5) * inradius * 2) / 2 - svg.getAttribute("margin-left"), 100 + sideLength * 1.5 * i - svg.getAttribute("margin-top"), sideLength));
                 }
-                this.tilesPoints.push([100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius, 100 + sideLength * 1.5 * i]);
             }
         }
 
@@ -244,11 +252,43 @@ class Tile {
     
             this.text = document.createElementNS("http://www.w3.org/2000/svg", "text");
             this.text.setAttribute("x", this.x);
-            this.text.setAttribute("y", this.y);
+            this.text.setAttribute("y", this.y - 2.5);
             this.text.setAttribute("fill", (this.number == 6 || this.number == 8 ? "red" : "black"));
             this.text.setAttribute("font-size", "30");
             this.text.textContent = this.number;
             group.appendChild(this.text);
+
+            let odds = 0;
+            switch (this.number) {
+                case 2:
+                case 12:
+                    odds = 1;
+                    break;
+                case 3:
+                case 11:
+                    odds = 2;
+                    break;
+                case 4:
+                case 10:
+                    odds = 3;
+                    break;
+                case 5:
+                case 9:
+                    odds = 4;
+                    break;
+                case 6:
+                case 8:
+                    odds = 5;
+                    break;
+            }
+            for (let i = 0; i < odds; i++) {
+                let prob = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                prob.setAttribute("cx", this.x + 5 * i - 5 * (odds - 1) / 2);
+                prob.setAttribute("cy", this.y + 12.5);
+                prob.setAttribute("r", 2);
+                prob.setAttribute("fill", (this.number == 6 || this.number == 8 ? "red" : "black"));
+                group.appendChild(prob);
+            }
         }
 
         document.getElementById("tiles").appendChild(group);
@@ -285,15 +325,15 @@ class draggableElement {
 }
 
 class Robber extends draggableElement {
-    constructor(radius) {
+    constructor(x, y, radius) {
         super();
-        this.snapPoints = map.tilesPoints;
+        this.snapPoints = map.tiles.map(tile => [tile.x, tile.y]);
         this.radius = radius;
 
         this.element = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         this.element.id = "robber";
-        this.element.setAttribute("cx", "100");
-        this.element.setAttribute("cy", "100");
+        this.element.setAttribute("cx", x);
+        this.element.setAttribute("cy", y);
         this.element.setAttribute("r", this.radius);
         this.element.setAttribute("fill", "black");
         this.element.onmousedown = this.dragMouseDown.bind(this);
@@ -317,7 +357,7 @@ class Robber extends draggableElement {
         this.move(closestPoint[0] - this.element.getAttribute("radius"), closestPoint[1] - this.element.getAttribute("radius"));
     }
 
-    // robber does not raise or lower
+    // robber is always on top
     raise() { }
     lower() { }
 }
@@ -365,7 +405,7 @@ class Building extends draggableElement {
                 closestDistance = Math.sqrt((this.element.getAttribute("points").split(" ")[0].split(",")[0] - point[0]) ** 2 + (this.element.getAttribute("points").split(" ")[0].split(",")[1] - point[1]) ** 2);
             }
         }
-        this.move(closestPoint[0] - this.element.getBBox().width / 2, closestPoint[1] - this.element.getBBox().width / 2);
+        this.move(Math.round(closestPoint[0]) - this.element.getBBox().width / 2, Math.round(closestPoint[1]) - this.element.getBBox().width / 2);
         
         // when snapped record what resources the settlement is next to
         this.nearbyTiles = [];
@@ -424,7 +464,7 @@ class Road extends draggableElement {
             }
         }
         this.element.setAttribute("transform", `rotate(${closestPoint[2]})`);
-        this.move(closestPoint[0] - this.element.getAttribute("width") / 2, closestPoint[1] - this.element.getAttribute("height") / 2);
+        this.move(Math.round(closestPoint[0]) - this.element.getAttribute("width") / 2, Math.round(closestPoint[1]) - this.element.getAttribute("height") / 2);
     }
 
     raise() {
@@ -470,11 +510,18 @@ function shuffle(array) {
 }
 
 let map = new Map(5);
+new Robber(map.desert.x, map.desert.y, 20);
 
-let player = new Player("Alex", "blue");
+let player = new Player("Alex", "white  ");
 
 let players = [player];
 
 let dice = new Dice();
 
-new Robber(20);
+/*
+Brick: 49
+Wool: 50
+Ore: 47
+Grain: 48
+Lumber: 49
+ */

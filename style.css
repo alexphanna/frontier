@@ -1,12 +1,13 @@
 * {
-    margin: 0;
-    padding: 0;
+    background-color: #40c0ff;
     box-sizing: border-box;
+    text-align: center;
+    margin: 0;
 }
 
 text {
     text-anchor: middle;
-    dominant-baseline: middle;\
+    dominant-baseline: middle;
 }
 
 polygon, rect {
@@ -14,4 +15,16 @@ polygon, rect {
     stroke-width: 2;
     transform-origin: center;
     transform-box: fill-box;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    background-color: #0080c0;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 0px 10px rgb(0 0 0 / 0.2);
 }
