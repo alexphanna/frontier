@@ -1,8 +1,9 @@
-* {
+html {
     background-color: #40c0ff;
+    color: #0080c0;
     box-sizing: border-box;
     text-align: center;
-    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 text {
@@ -17,14 +18,25 @@ polygon, rect {
     transform-box: fill-box;
 }
 
-button {
+button, input {
     padding: 10px 20px;
     font-size: 16px;
-    font-weight: bold;
     border: none;
     border-radius: 5px;
+    font-weight: bold;
+    margin: 8px 4px;
+    box-shadow: 0 0px 10px rgb(0 0 0 / 0.2);
+}
+button {
+    cursor: pointer;
     background-color: #0080c0;
     color: white;
-    cursor: pointer;
-    box-shadow: 0 0px 10px rgb(0 0 0 / 0.2);
+}
+
+input {
+    cursor: text;
+    text-align: left;
+    font-weight: normal;
+    background-color: white;
+    color: black;;
 }

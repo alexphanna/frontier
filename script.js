@@ -64,117 +64,54 @@ class Player {
     }
 }
 
-/**
- * Represents a pair of dice
- */
-class Dice {
-    roll() {
-        const roll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
-        document.getElementById("roll").innerHTML = `roll: ${roll}`;
-
-        // token highlighting
-        for (let tile of map.tiles) {
-            if (tile.name == "Desert") {
-                continue;
-            }
-            if (roll == 7) {
-                tile.token.setAttribute("fill", "#ff4040");
-            }
-            else {
-                if (tile.number == roll) {
-                    tile.token.setAttribute("fill", "#00c0ff");
-                }
-                else {
-                    tile.token.setAttribute("fill", "#ffe0a0");
-                }
-            }
-        }
-
-        // resource allocation
-        for (let player of players) {
-            for (let building of player.buildings) {
-                for (let tile of building.nearbyTiles) {
-                    if (tile.number == roll) {
-                        if (building.element.id == "settlement") {
-                            player.resources[tile.name]++;
-                        }
-                        else if (building.element.id == "city") {
-                            player.resources[tile.name] += 2;
-                        }
-                    }
-                }
-            }
-            player.updateInfo();
-        }
-    }
-}
-
 class Map {
-    constructor (width) {
-        // Resource allocation
-        const resourceCounts = {
-            "Brick": 3,
-            "Wool": 4,
-            "Ore": 3,
-            "Grain": 4,
-            "Lumber": 4
-        };
-        const resources = Object.keys(resourceCounts);
-        const resourceDistr = resources.flatMap(resource => Array(resourceCounts[resource]).fill(resources.indexOf(resource)));
-        shuffle(resourceDistr);
-        this.resourceMap = [];
-    
-        // Number allocation
-        const numberDistr = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
-        shuffle(numberDistr);
-        this.numberMap = [];
+    constructor(terrainDistr, numberDistr) {
+        let width = 5
 
-        // Desert
-        const random = Math.floor(Math.random() * resourceDistr.length);
-        resourceDistr.splice(random, 0, 6);
-        numberDistr.splice(random, 0, 7);
-    
+        this.terrainMap = []
+        this.numberMap = []
+
         for (let i = 3; i <= width; i++) {
-            const resourceRow = [];
+            const terrainRow = [];
             const numberRow = [];
             for (let j = 0; j < i; j++) {
-                resourceRow.push(resourceDistr.pop());
+                terrainRow.push(terrainDistr.pop());
                 numberRow.push(numberDistr.pop());
             }
-            this.resourceMap.push(resourceRow);
+            this.terrainMap.push(terrainRow);
             this.numberMap.push(numberRow);
         }
         for (let i = width - 1; i >= 3; i--) {
-            const resourceRow = [];
+            const terrainRow = [];
             const numberRow = [];
             for (let j = 0; j < i; j++) {
-                resourceRow.push(resourceDistr.pop());
+                terrainRow.push(terrainDistr.pop());
                 numberRow.push(numberDistr.pop());
             }
-            this.resourceMap.push(resourceRow);
+            this.terrainMap.push(terrainRow);
             this.numberMap.push(numberRow);
         }
 
         const sideLength = 75;
         const inradius = (Math.sqrt(3) / 2) * sideLength;
-        this.tiles = [];
-    
-        let maxLength = 0;
-        for (let i = 0; i < this.resourceMap.length; i++) {
-            if (this.resourceMap[i].length > maxLength) maxLength = this.resourceMap[i].length;
-        }
+        this.tiles = []
 
         const svg = document.getElementById("board");
-    
-        for (let i = 0; i < this.resourceMap.length; i++) {
-            for (let j = 0; j < this.resourceMap[i].length; j++) {
-                if (this.resourceMap[i][j] == 6) {
-                    this.desert = new Tile("Desert", 7, 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius + (window.innerWidth - (maxLength + .5) * inradius * 2) / 2, 100 + sideLength * 1.5 * i, sideLength);
-                    this.tiles.push(this.desert);
-                }
-                else {
-                    this.tiles.push(new Tile(resources[this.resourceMap[i][j]], this.numberMap[i][j], 100 + inradius * 2 * j + (maxLength - this.resourceMap[i].length) * inradius + (window.innerWidth - (maxLength + .5) * inradius * 2) / 2 - svg.getAttribute("margin-left"), 100 + sideLength * 1.5 * i - svg.getAttribute("margin-top"), sideLength));
-                }
+
+        const terrainCounts = {
+            "Hills": 3,
+            "Forest": 4,
+            "Mountains": 3,
+            "Fields": 4,
+            "Pasture": 4,
+            "Desert": 1
+        }
+        const terrains = Object.keys(terrainCounts);
+        var maxLength = 5;
+
+        for (let i = 0; i < this.terrainMap.length; i++) {
+            for (let j = 0; j < this.terrainMap[i].length; j++) {
+                this.tiles.push(new Tile(terrains[this.terrainMap[i][j]], this.numberMap[i][j], 100 + inradius * 2 * j + (maxLength - this.terrainMap[i].length) * inradius + (window.innerWidth - (maxLength + .5) * inradius * 2) / 2 - svg.getAttribute("margin-left"), 100 + sideLength * 1.5 * i - svg.getAttribute("margin-top"), sideLength));
             }
         }
 
@@ -203,6 +140,24 @@ class Map {
             }
         }
     }
+    highlightTokens(roll) {
+        for (let tile of this.tiles) {
+            if (tile.name == "Desert") {
+                continue;
+            }
+            if (roll == 7) {
+                tile.token.setAttribute("fill", "#ff4040");
+            }
+            else {
+                if (tile.number == roll) {
+                    tile.token.setAttribute("fill", "#00c0ff");
+                }
+                else {
+                    tile.token.setAttribute("fill", "#ffe0a0");
+                }
+            }
+        }
+    }
 }
 
 class Tile {
@@ -219,19 +174,19 @@ class Tile {
         this.hexagon = createHexagon(this.x, this.y, this.sideLength);
 
         switch (this.name) {
-            case "Brick":
+            case "Hills":
                 this.hexagon.setAttribute("fill", "#800000");
                 break;
-            case "Wool":
+            case "Pasture":
                 this.hexagon.setAttribute("fill", "#00C000");
                 break;
-            case "Ore":
+            case "Mountains":
                 this.hexagon.setAttribute("fill", "#808080");
                 break;
-            case "Grain":
+            case "Fields":
                 this.hexagon.setAttribute("fill", "#ffff00");
                 break;
-            case "Lumber":
+            case "Forest":
                 this.hexagon.setAttribute("fill", "#004000");
                 break;
             case "Desert":
@@ -249,7 +204,7 @@ class Tile {
             this.token.setAttribute("stroke", "black");
             this.token.setAttribute("stroke-width", "2");
             group.appendChild(this.token);
-    
+
             this.text = document.createElementNS("http://www.w3.org/2000/svg", "text");
             this.text.setAttribute("x", this.x);
             this.text.setAttribute("y", this.y - 2.5);
@@ -259,7 +214,7 @@ class Tile {
             group.appendChild(this.text);
 
             let odds = 0;
-            switch (this.number) {
+            switch (Number(this.number)) {
                 case 2:
                 case 12:
                     odds = 1;
@@ -313,7 +268,7 @@ class draggableElement {
 
     elementDrag(e) {
         e.preventDefault();
-        this.move(e.clientX, e.clientY);
+        this.move(e.clientX, e.clientY - 100); // make num exact
     }
 
     closeDragElement() {
@@ -344,7 +299,7 @@ class Robber extends draggableElement {
         this.element.setAttribute("cx", x);
         this.element.setAttribute("cy", y);
     }
-    
+
     snap() {
         let closestPoint = null;
         let closestDistance = Infinity;
@@ -406,12 +361,12 @@ class Building extends draggableElement {
             }
         }
         this.move(Math.round(closestPoint[0]) - this.element.getBBox().width / 2, Math.round(closestPoint[1]) - this.element.getBBox().width / 2);
-        
+
         // when snapped record what resources the settlement is next to
         this.nearbyTiles = [];
         for (let tile of map.tiles) {
             for (let point of tile.hexagon.getAttribute("points").split(" ")) {
-                if (Math.abs(point.split(",")[0] - closestPoint[0]) < 0.01 
+                if (Math.abs(point.split(",")[0] - closestPoint[0]) < 0.01
                     && Math.abs(point.split(",")[1] - closestPoint[1]) < 0.01) {
                     this.nearbyTiles.push(tile);
                 }
@@ -490,38 +445,39 @@ function createHexagon(x, y, sideLength) {
     return hexagon;
 }
 
-/**
- * Shuffles the elements in the given array using the Fisher-Yates algorithm.
- * @param {Array} array - The array to be shuffled.
- * @returns {Array} - The shuffled array.
- */
-function shuffle(array) {
-    let currentIndex = array.length;
-    
-    while (currentIndex != 0) {
-      let randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-      
-      [array[currentIndex], array[randomIndex]] = [
-        array[randomIndex], array[currentIndex]];
-    }
+function connect() {
+    const address = document.getElementById("address").value;
+    ws = new WebSocket(`ws://${address}`);
+    let terrains = [];
+    let numbers = [];
 
-    return array;
+    ws.onmessage = function (event) {
+        console.log(`Received message: ${event.data}`);
+
+        const data = event.data.split(": ");
+        if (data[0] == "terrains") {
+            terrains = data[1].substring(1, data[1].length - 1).split(",")
+        }
+        else if (data[0] == "numbers") {
+            numbers = data[1].substring(1, data[1].length - 1).split(",")
+        }
+        else if (data[0] == "generated") {
+            map = new Map(terrains, numbers);
+        }
+        else if (data[0] == "dice") {
+            map.highlightTokens(data[1]);
+        }
+    };
 }
 
-let map = new Map(5);
-new Robber(map.desert.x, map.desert.y, 20);
+function start() {
+    document.getElementById("connection").setAttribute("style", "display: none")
+    document.getElementById("game").setAttribute("style", "display: block")
+    ws.send("generate")
+}
 
-let player = new Player("Alex", "white  ");
+var map;
 
-let players = [player];
+var player = new Player("Alex", "white  ");
 
-let dice = new Dice();
-
-/*
-Brick: 49
-Wool: 50
-Ore: 47
-Grain: 48
-Lumber: 49
- */
+var players = [player];

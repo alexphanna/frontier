@@ -5,17 +5,27 @@
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-    <svg width="100%" height="650" id="board">
+    <h1>Catan</h1>
+    <div id="connection">
+        <input type="text" id="name" placeholder="Name">
+        <br>
+        <input type="text" id="address" placeholder="Server Address">
+        <br>
+        <button id="connect" onclick="connect()">Connect</button>
+        <br>
+        <button id="start" onclick="start()">Start</button>
+    </div>
+    <div id="game" style="display: none;">
+        <svg width="100%" height="650" id="board">
         <g id="tiles"></g>
         <g id="roads"></g>
         <g id="buildings"></g>
-        <!-- Elements being dragged go here -->
     </svg>
     <div id="buttons">
         <button id="buildSettlement" onclick="player.buildSettlement()">Build Settlement</button>
         <button id="buildCity" onclick="player.buildCity()">Build City</button>
         <button id="buildRoad" onclick="player.buildRoad()">Build Road</button>
-        <button id="rollDice" onclick="dice.roll()">Roll Dice</button>
+        <button id="rollDice" onclick="ws.send('rollDice')">Roll Dice</button>
     </div>
     <br>
     <div id="inventory">
@@ -26,6 +36,8 @@
         <br>
         <p id="buildingsInfo" style="vertical-align: top;"></p>
     </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
