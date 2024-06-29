@@ -1,69 +1,3 @@
-class Player {
-    constructor(name, color) {
-        this.name = name;
-        this.color = color;
-        this.resources = {
-            "Brick": 50,
-            "Wool": 50,
-            "Ore": 50,
-            "Grain": 50,
-            "Lumber": 50
-        };
-        this.settlements = 5;
-        this.cities = 4;
-        this.roads = 15;
-        this.victoryPoints = 0;
-        this.buildings = [];
-
-        this.updateInfo();
-    }
-    get canBuildSettlement() {
-        return this.resources["Brick"] >= 1 && this.resources["Wool"] >= 1 && this.resources["Grain"] >= 1 && this.resources["Lumber"] >= 1 && this.settlements > 0;
-    }
-    get canBuildCity() {
-        return this.resources["Ore"] >= 3 && this.resources["Grain"] >= 2 && this.cities > 0;
-    }
-    updateInfo() {
-        document.getElementById("resourcesInfo").innerHTML = `Brick: ${this.resources["Brick"]}<br>Wool: ${this.resources["Wool"]}<br>Ore: ${this.resources["Ore"]}<br>Grain: ${this.resources["Grain"]}<br>Lumber: ${this.resources["Lumber"]}`;
-        document.getElementById("buildingsInfo").innerHTML = `Settlements: ${this.settlements}<br>Cities: ${this.cities}<br>Roads: ${this.roads}`;
-        if (!this.canBuildSettlement) {
-            document.getElementById("buildSettlement").disabled = true;
-        }
-        if (!this.canBuildCity) {
-            document.getElementById("buildCity").disabled = true;
-        }
-    }
-    buildSettlement() {
-        if (this.canBuildSettlement) {
-            this.resources["Brick"]--;
-            this.resources["Wool"]--;
-            this.resources["Grain"]--;
-            this.resources["Lumber"]--;
-            this.settlements--;
-            this.victoryPoints++;
-            this.updateInfo();
-            this.buildings.push(new Building(100, 100, this.color, "settlement"));
-        }
-    }
-    buildCity() {
-        if (this.canBuildCity) {
-            this.resources["Ore"] -= 3;
-            this.resources["Grain"] -= 2;
-            this.cities--;
-            this.victoryPoints++;
-            this.updateInfo();
-            this.buildings.push(new Building(100, 100, this.color, "city"));
-        }
-    }
-    buildRoad() {
-        this.roads--;
-        this.resources["Brick"]--;
-        this.resources["Lumber"]--;
-        this.updateInfo();
-        new Road(100, 100, this.color);
-    }
-}
-
 class Map {
     constructor(terrainDistr, numberDistr) {
         let width = 5
@@ -445,9 +379,19 @@ function createHexagon(x, y, sideLength) {
     return hexagon;
 }
 
-function connect() {
+function join() {
+    const name = document.getElementById("name").value;
     const address = document.getElementById("address").value;
     ws = new WebSocket(`ws://${address}`);
+
+    ws.onopen = function() {
+        ws.send("addPlayer " + name + " red");
+        document.getElementById("menu").setAttribute("style", "display: none")
+        document.getElementById("lobby").setAttribute("style", "display: block")
+        ws.send("generate");
+        ws.send("players");
+    };
+
     let terrains = [];
     let numbers = [];
 
@@ -467,17 +411,35 @@ function connect() {
         else if (data[0] == "dice") {
             map.highlightTokens(data[1]);
         }
+        else if (data[0] == "players") {
+            document.getElementById("players").innerHTML = "";
+            for (let player of data[1].substring(2, data[1].length - 2).split("\",\"")) {
+                document.getElementById("players").innerHTML += `<li>${player}</li>`;
+            }
+        }
+        else if (data[0] == "started") {
+            document.getElementById("lobby").setAttribute("style", "display: none");
+            document.getElementById("game").setAttribute("style", "display: block");
+        }
     };
-}
-
-function start() {
-    document.getElementById("connection").setAttribute("style", "display: none")
-    document.getElementById("game").setAttribute("style", "display: block")
-    ws.send("generate")
 }
 
 var map;
 
-var player = new Player("Alex", "white  ");
+/* to be synced:
+ * buildings
+ * player info
+ * robber
+ * 
+ * synced:
+ * dice roll
+ * map
+ */
 
-var players = [player];
+/* server-side:
+ * - players
+ * - turn logic
+ * client-side:
+ * - graphics
+ * 
+ */

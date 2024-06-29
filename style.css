@@ -1,9 +1,20 @@
+/* Old Color Scheme
+ * 40c0ff
+ * 0080c0
+ */
+
 html {
-    background-color: #40c0ff;
-    color: #0080c0;
+    /*background-color: #40c0ff;*/
+    background-color: #202020;
     box-sizing: border-box;
+    color: #dfdfdf;
     text-align: center;
     font-family: Arial, Helvetica, sans-serif;
+}
+
+h1 {
+    color: white;
+    font-size: 48px;
 }
 
 text {
@@ -29,8 +40,20 @@ button, input {
 }
 button {
     cursor: pointer;
-    background-color: #0080c0;
+    background-color: #404040;
     color: white;
+}
+
+button:hover {
+    background-color: #808080;
+}
+
+button:active {
+    background-color: #c0c0c0;
+}
+
+button:disabled {
+    background-color: #202020;
 }
 
 input {

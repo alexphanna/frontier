@@ -6,36 +6,42 @@
 </head>
 <body>
     <h1>Catan</h1>
-    <div id="connection">
-        <input type="text" id="name" placeholder="Name">
+    <div id="menu">
+        Name
         <br>
-        <input type="text" id="address" placeholder="Server Address">
+        <input type="text" id="name" placeholder="Alex">
+        <br><br>
+        Server Address
         <br>
-        <button id="connect" onclick="connect()">Connect</button>
-        <br>
-        <button id="start" onclick="start()">Start</button>
+        <input type="text" id="address" placeholder="127.0.0.1:8080">
+        <br><br>
+        <button id="join" onclick="join()">Join Server</button>
+    </div>
+    <div id="lobby" style="display: none;">
+        <h2 id="players"></h2>
+        <button id="start" onclick="ws.send('start')">Start</button>
     </div>
     <div id="game" style="display: none;">
         <svg width="100%" height="650" id="board">
-        <g id="tiles"></g>
-        <g id="roads"></g>
-        <g id="buildings"></g>
-    </svg>
-    <div id="buttons">
-        <button id="buildSettlement" onclick="player.buildSettlement()">Build Settlement</button>
-        <button id="buildCity" onclick="player.buildCity()">Build City</button>
-        <button id="buildRoad" onclick="player.buildRoad()">Build Road</button>
-        <button id="rollDice" onclick="ws.send('rollDice')">Roll Dice</button>
-    </div>
-    <br>
-    <div id="inventory">
-        <p id="nearbyTiles"></p>
-        <p id="roll"></p>
+            <g id="tiles"></g>
+            <g id="roads"></g>
+            <g id="buildings"></g>
+        </svg>
+        <div id="buttons">
+            <button id="buildSettlement" onclick="player.buildSettlement()">Build Settlement</button>
+            <button id="buildCity" onclick="player.buildCity()">Build City</button>
+            <button id="buildRoad" onclick="player.buildRoad()">Build Road</button>
+            <button id="rollDice" onclick="ws.send('rollDice')">Roll Dice</button>
+        </div>
         <br>
-        <p id="resourcesInfo" ></p>
-        <br>
-        <p id="buildingsInfo" style="vertical-align: top;"></p>
-    </div>
+        <div id="inventory">
+            <p id="nearbyTiles"></p>
+            <p id="roll"></p>
+            <br>
+            <p id="resourcesInfo" ></p>
+            <br>
+            <p id="buildingsInfo" style="vertical-align: top;"></p>
+        </div>
     </div>
 
     <script src="script.js"></script>
