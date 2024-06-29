@@ -257,10 +257,11 @@ class Building extends draggableElement {
         this.snapPoints = map.vertices;
         this.x = x;
         this.y = y;
+        this.id = id;
         this.color = color;
         this.nearbyTiles = [];
 
-        switch (id) {
+        switch (this.id) {
             case "settlement":
                 this.shape = `0,0 10,-10 20,0 20,20 0,20`;
                 break;
@@ -307,6 +308,7 @@ class Building extends draggableElement {
             }
         }
         document.getElementById("nearbyTiles").innerHTML = this.nearbyTiles.toString();
+        ws.send(`build: ${this.id} ${Math.round(closestPoint[0]) - this.element.getBBox().width / 2} ${Math.round(closestPoint[1]) - this.element.getBBox().width / 2} ${this.color}`);
     }
 
     raise() {
@@ -354,6 +356,7 @@ class Road extends draggableElement {
         }
         this.element.setAttribute("transform", `rotate(${closestPoint[2]})`);
         this.move(Math.round(closestPoint[0]) - this.element.getAttribute("width") / 2, Math.round(closestPoint[1]) - this.element.getAttribute("height") / 2);
+        ws.send(`build: road ${Math.round(closestPoint[0]) - this.element.getAttribute("width") / 2} ${Math.round(closestPoint[1]) - this.element.getAttribute("height") / 2} ${closestPoint[2]} ${this.color}`);
     }
 
     raise() {
@@ -382,10 +385,11 @@ function createHexagon(x, y, sideLength) {
 function join() {
     const name = document.getElementById("name").value;
     const address = document.getElementById("address").value;
+    color = document.getElementById("color").value;
     ws = new WebSocket(`ws://${address}`);
 
     ws.onopen = function() {
-        ws.send("addPlayer " + name + " red");
+        ws.send("addPlayer " + name + " " + color); 
         document.getElementById("menu").setAttribute("style", "display: none")
         document.getElementById("lobby").setAttribute("style", "display: block")
         ws.send("generate");
@@ -398,7 +402,7 @@ function join() {
     ws.onmessage = function (event) {
         console.log(`Received message: ${event.data}`);
 
-        const data = event.data.split(": ");
+        const data = String(event.data).split(": ");
         if (data[0] == "terrains") {
             terrains = data[1].substring(1, data[1].length - 1).split(",")
         }
@@ -421,9 +425,32 @@ function join() {
             document.getElementById("lobby").setAttribute("style", "display: none");
             document.getElementById("game").setAttribute("style", "display: block");
         }
+        else if (data[0] == "build") {
+            const args = data[1].split(" ");
+            if (args[0] == "settlement") {
+                buildSettlement(args[1], args[2], args[3]);
+            }
+            else if (args[0] == "city") {
+                buildCity(args[1], args[2], args[3]);
+            }
+            else if (args[0] == "road") {
+                buildRoad(args[1], args[2], args[3], args[4]);
+            }
+        }
     };
 }
+function buildSettlement(x, y, color) {
+    new Building(parseInt(x), parseInt(y), color, "settlement");
+}
+function buildCity(x, y, color) {
+    new Building(parseInt(x), parseInt(y), color, "city");
+}
+function buildRoad(x, y, theta, color) {
+    let road = new Road(parseInt(x), parseInt(y), color);
+    road.element.setAttribute("transform", `rotate(${theta})`);
+}
 
+var color;
 var map;
 
 /* to be synced:

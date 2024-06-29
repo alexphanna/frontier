@@ -34,25 +34,13 @@ class Player {
             document.getElementById("buildCity").disabled = true;
         }
     }*/
-    buildSettlement() {
-        if (this.canBuildSettlement) {
-            this.resources["Brick"]--;
-            this.resources["Wool"]--;
-            this.resources["Grain"]--;
-            this.resources["Lumber"]--;
-            this.settlements--;
-            this.victoryPoints++;
-            this.updateInfo();
-            this.buildings.push(new Building(100, 100, this.color, "settlement"));
-        }
-    }
     buildCity() {
         if (this.canBuildCity) {
             this.resources["Ore"] -= 3;
             this.resources["Grain"] -= 2;
             this.cities--;
             this.victoryPoints++;
-            this.updateInfo();
+            //this.updateInfo();
             this.buildings.push(new Building(100, 100, this.color, "city"));
         }
     }
@@ -116,6 +104,7 @@ wss.on('connection', (ws) => {
     ws.on('message', (message) => {
         console.log(`Received message: ${message}`);
 
+        // /!\ combine start and generate
         if (message == "start") {
             broadcast("started");
         }
@@ -142,6 +131,9 @@ wss.on('connection', (ws) => {
             players.add(new Player(name, color, ws));
             broadcast(`players: ${JSON.stringify(Array.from(players).map(player => player.name))}`);
         }
+        if (String(message).startsWith("build")) {
+            broadcast(String(message));
+        }
     });
 
     ws.on('close', () => {
@@ -164,3 +156,5 @@ function broadcast(message) {
         }
     }
 }
+
+/* tom: add player request to join not auto add */

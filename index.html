@@ -15,6 +15,10 @@
         <br>
         <input type="text" id="address" placeholder="127.0.0.1:8080">
         <br><br>
+        Color
+        <br>
+        <input type="text" id="color" placeholder="Red">
+        <br><br>
         <button id="join" onclick="join()">Join Server</button>
     </div>
     <div id="lobby" style="display: none;">
@@ -28,9 +32,9 @@
             <g id="buildings"></g>
         </svg>
         <div id="buttons">
-            <button id="buildSettlement" onclick="player.buildSettlement()">Build Settlement</button>
-            <button id="buildCity" onclick="player.buildCity()">Build City</button>
-            <button id="buildRoad" onclick="player.buildRoad()">Build Road</button>
+            <button id="buildSettlement" onclick="buildSettlement(100, 100, color)">Build Settlement</button>
+            <button id="buildCity" onclick="buildCity(100, 100, color)">Build City</button>
+            <button id="buildRoad" onclick="buildRoad(100, 100, 0, color)">Build Road</button>
             <button id="rollDice" onclick="ws.send('rollDice')">Roll Dice</button>
         </div>
         <br>
