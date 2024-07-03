@@ -97,6 +97,10 @@ function generateNumbers(terrainDistr) {
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 const players = new Set();
+let turn = 0;
+
+const terrains = generateTerrain();
+const numbers = generateNumbers(terrains);
 
 wss.on('connection', (ws) => {
     console.log('Client connected');
@@ -107,14 +111,17 @@ wss.on('connection', (ws) => {
         // /!\ combine start and generate
         if (message == "start") {
             broadcast("started");
+            const player = Array.from(players.values())[turn % Array.from(players.values()).length];
+            player.client.send("yourTurn");
         }
         if (message == "generate") {
-            var terrains = generateTerrain();
-            var numbers = generateNumbers(terrains);
             broadcast(`terrains: ${JSON.stringify(terrains)}`);
             broadcast(`numbers: ${JSON.stringify(numbers)}`);
-            
             broadcast("generated")
+        }
+        if (message == "endTurn") {
+            const player = Array.from(players.values())[turn++ % Array.from(players.values()).length];
+            player.client.send("yourTurn");
         }
         if (message == "rollDice") {
             var roll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1

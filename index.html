@@ -5,7 +5,10 @@
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-    <h1>Catan</h1>
+    <div id="header">
+        <h1>Catan</h1>
+    </div>
+    <br><br>
     <div id="menu">
         Name
         <br>
@@ -32,10 +35,11 @@
             <g id="buildings"></g>
         </svg>
         <div id="buttons">
-            <button id="buildSettlement" onclick="buildSettlement(100, 100, color)">Build Settlement</button>
-            <button id="buildCity" onclick="buildCity(100, 100, color)">Build City</button>
-            <button id="buildRoad" onclick="buildRoad(100, 100, 0, color)">Build Road</button>
+            <button id="buildSettlement" onclick="buildBuilding(100, 100, color, 'settlement')">Build Settlement</button>
+            <button id="buildCity" onclick="buildBuilding(100, 100, color, 'city')">Build City</button>
+            <!--<button id="buildRoad" onclick="buildRoad(100, 100, 0, color)">Build Road</button>-->
             <button id="rollDice" onclick="ws.send('rollDice')">Roll Dice</button>
+            <button id="endTurn" onclick="ws.send('endTurn')">End Turn</button>
         </div>
         <br>
         <div id="inventory">

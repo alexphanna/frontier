@@ -1,29 +1,25 @@
 class Map {
     constructor(terrainDistr, numberDistr) {
-        let width = 5
+        let width = 5 // should really be sent from the server
 
         this.terrainMap = []
         this.numberMap = []
 
         for (let i = 3; i <= width; i++) {
-            const terrainRow = [];
-            const numberRow = [];
+            this.terrainMap.push([]);
+            this.numberMap.push([]);
             for (let j = 0; j < i; j++) {
-                terrainRow.push(terrainDistr.pop());
-                numberRow.push(numberDistr.pop());
+                this.terrainMap[this.terrainMap.length - 1].push(terrainDistr.pop());
+                this.numberMap[this.numberMap.length - 1].push(numberDistr.pop());
             }
-            this.terrainMap.push(terrainRow);
-            this.numberMap.push(numberRow);
         }
         for (let i = width - 1; i >= 3; i--) {
-            const terrainRow = [];
-            const numberRow = [];
+            this.terrainMap.push([]);
+            this.numberMap.push([]);
             for (let j = 0; j < i; j++) {
-                terrainRow.push(terrainDistr.pop());
-                numberRow.push(numberDistr.pop());
+                this.terrainMap[this.terrainMap.length - 1].push(terrainDistr.pop());
+                this.numberMap[this.numberMap.length - 1].push(numberDistr.pop());
             }
-            this.terrainMap.push(terrainRow);
-            this.numberMap.push(numberRow);
         }
 
         const sideLength = 75;
@@ -32,20 +28,11 @@ class Map {
 
         const svg = document.getElementById("board");
 
-        const terrainCounts = {
-            "Hills": 3,
-            "Forest": 4,
-            "Mountains": 3,
-            "Fields": 4,
-            "Pasture": 4,
-            "Desert": 1
-        }
-        const terrains = Object.keys(terrainCounts);
-        var maxLength = 5;
+        const terrains = [ "Hills", "Forest", "Mountains", "Fields", "Pasture", "Desert" ];
 
         for (let i = 0; i < this.terrainMap.length; i++) {
             for (let j = 0; j < this.terrainMap[i].length; j++) {
-                this.tiles.push(new Tile(terrains[this.terrainMap[i][j]], this.numberMap[i][j], 100 + inradius * 2 * j + (maxLength - this.terrainMap[i].length) * inradius + (window.innerWidth - (maxLength + .5) * inradius * 2) / 2 - svg.getAttribute("margin-left"), 100 + sideLength * 1.5 * i - svg.getAttribute("margin-top"), sideLength));
+                this.tiles.push(new Tile(terrains[this.terrainMap[i][j]], this.numberMap[i][j], 100 + inradius * 2 * j + (width - this.terrainMap[i].length) * inradius + (window.innerWidth - (width + .5) * inradius * 2) / 2 - svg.getAttribute("margin-left"), 100 + sideLength * 1.5 * i - svg.getAttribute("margin-top"), sideLength));
             }
         }
 
@@ -89,6 +76,27 @@ class Map {
                 else {
                     tile.token.setAttribute("fill", "#ffe0a0");
                 }
+            }
+        }
+    }
+    getTile(name, number) {
+        for (let tile of this.tiles) {
+            if (tile.name == name && tile.number == number) {
+                return tile;
+            }
+        }
+    }
+    getEdge(tile1, tile2, theta) {
+        for (let edge of this.edges) {
+            if (Math.abs(edge[0] - (tile1.x + tile2.x) / 2) < 0.01 && Math.abs(edge[1] - (tile1.y + tile2.y) / 2) < 0.01 && Math.abs(edge[2] - theta) < 0.01){
+                return edge;
+            }
+        }
+    }
+    getVertex(tile1, tile2, tile3) {
+        for (let vertex of this.vertices) {
+            if (Math.abs(vertex[0] - (tile1.x + tile2.x + tile3.x) / 3) < 0.01 && Math.abs(vertex[1] - (tile1.y + tile2.y + tile3.y) / 3) < 0.01) {
+                return vertex;
             }
         }
     }
@@ -188,7 +196,7 @@ class Tile {
     }
 
     toString() {
-        return `${this.name} ${this.number}`;
+        return `${this.name}_${this.number}`;
     }
 }
 
@@ -274,9 +282,9 @@ class Building extends draggableElement {
         this.element.setAttribute("id", id);
         this.element.setAttribute("fill", this.color);
         this.element.setAttribute("points", this.shape);
-        this.move(this.x, this.y);
         this.element.onmousedown = this.dragMouseDown.bind(this); // Bind the event handler to the instance
         document.getElementById("buildings").appendChild(this.element);
+        this.move(this.x - this.element.getBBox().width / 2, this.y - this.element.getBBox().width / 2);
     }
 
     move(x, y) {
@@ -308,7 +316,7 @@ class Building extends draggableElement {
             }
         }
         document.getElementById("nearbyTiles").innerHTML = this.nearbyTiles.toString();
-        ws.send(`build: ${this.id} ${Math.round(closestPoint[0]) - this.element.getBBox().width / 2} ${Math.round(closestPoint[1]) - this.element.getBBox().width / 2} ${this.color}`);
+        ws.send(`build: ${this.id} ${this.nearbyTiles} ${this.color}`);
     }
 
     raise() {
@@ -335,9 +343,9 @@ class Road extends draggableElement {
         this.element.setAttribute("fill", this.color);
         this.element.setAttribute("width", "40");
         this.element.setAttribute("height", "10");
-        this.move(this.x, this.y);
         this.element.onmousedown = this.dragMouseDown.bind(this);
         document.getElementById("roads").appendChild(this.element);
+        this.move(this.x - this.element.getAttribute("width") / 2, this.y - this.element.getAttribute("height") / 2);
     }
 
     move(x, y) {
@@ -354,9 +362,30 @@ class Road extends draggableElement {
                 closestDistance = Math.sqrt((this.element.getAttribute("x") - point[0]) ** 2 + (this.element.getAttribute("y") - point[1]) ** 2);
             }
         }
+
+        this.nearbyTiles = [];
+        for (let tile of map.tiles) {
+            let hexagonPoints = tile.hexagon.getAttribute("points").split(" ");
+            for (let i = 0; i < hexagonPoints.length; i++) {
+                const vertex1 = hexagonPoints[i].split(",");
+                const vertex2 = hexagonPoints[(i + 1) % (hexagonPoints.length - 1)].split(",");
+                let edge = [Math.min(vertex1[0], vertex2[0]) + Math.abs(vertex1[0] - vertex2[0]) / 2, Math.min(vertex1[1], vertex2[1]) + Math.abs(vertex1[1] - vertex2[1]) / 2];
+                edge.push(Math.atan2(vertex1[1] - vertex2[1], vertex1[0] - vertex2[0]) * 180 / Math.PI);
+                if (Math.abs(edge[0] - closestPoint[0]) < 0.01
+                    && Math.abs(edge[1] - closestPoint[1]) < 0.01) {
+                    console.log(edge[2], closestPoint[2]);
+                    console.log(Math.abs(180 - Math.abs(edge[2]) - Math.abs(closestPoint[2])));
+                    if (Math.abs(180 - Math.abs(edge[2]) - Math.abs(closestPoint[2])) < 0.01 || Math.abs(edge[2] - closestPoint[2]) < 0.01) {
+                        this.nearbyTiles.push(tile);
+                    }
+                }
+            }
+        }
+        console.log(this.nearbyTiles.toString());
+
         this.element.setAttribute("transform", `rotate(${closestPoint[2]})`);
         this.move(Math.round(closestPoint[0]) - this.element.getAttribute("width") / 2, Math.round(closestPoint[1]) - this.element.getAttribute("height") / 2);
-        ws.send(`build: road ${Math.round(closestPoint[0]) - this.element.getAttribute("width") / 2} ${Math.round(closestPoint[1]) - this.element.getAttribute("height") / 2} ${closestPoint[2]} ${this.color}`);
+        ws.send(`build: road ${this.nearbyTiles} ${closestPoint[2]} ${this.color}`);
     }
 
     raise() {
@@ -425,25 +454,37 @@ function join() {
             document.getElementById("lobby").setAttribute("style", "display: none");
             document.getElementById("game").setAttribute("style", "display: block");
         }
+        /*
+         * edge is defined by four tiles
+         * vertex is defined by three tiles
+         */
         else if (data[0] == "build") {
             const args = data[1].split(" ");
-            if (args[0] == "settlement") {
-                buildSettlement(args[1], args[2], args[3]);
+            if (args[0] == "settlement" || args[0] == "city") {
+                const nearbyTiles = args[1].split(",");
+                const tiles = nearbyTiles.map(nearbyTile => {
+                    const [name, number] = nearbyTile.split("_");
+                    return map.getTile(name, number);
+                });
+                const vertex = map.getVertex(tiles[0], tiles[1], tiles[2]);
+                buildBuilding(vertex[0], vertex[1], args[2], args[0]);
             }
-            else if (args[0] == "city") {
-                buildCity(args[1], args[2], args[3]);
-            }
+            /*
             else if (args[0] == "road") {
-                buildRoad(args[1], args[2], args[3], args[4]);
+                const nearbyTiles = args[1].split(",");
+                const tiles = nearbyTiles.map(nearbyTile => {
+                    const [name, number] = nearbyTile.split("_");
+                    return map.getTile(name, number);
+                });
+                const edge = map.getEdge(tiles[0], tiles[1], args[2]);
+                buildRoad(edge[0], edge[1], edge[2], args[3]);
             }
+            */
         }
     };
 }
-function buildSettlement(x, y, color) {
-    new Building(parseInt(x), parseInt(y), color, "settlement");
-}
-function buildCity(x, y, color) {
-    new Building(parseInt(x), parseInt(y), color, "city");
+function buildBuilding(x, y, color, type) {
+    new Building(parseInt(x), parseInt(y), color, type);
 }
 function buildRoad(x, y, theta, color) {
     let road = new Road(parseInt(x), parseInt(y), color);
