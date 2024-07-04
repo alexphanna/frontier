@@ -1,84 +1,12 @@
-/* Old Color Scheme
- * 40c0ff
- * 0080c0
- */
-
-html {
-    /*background-color: #40c0ff;*/
-    background-color: #202020;
-    box-sizing: border-box;
-    color: #dfdfdf;
-    text-align: center;
-    font-family: Arial, Helvetica, sans-serif;
-}
-
-div#header {
-    width: 100%;
-    height: 100px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #101010;
-}
-
-body {
+html, body {
     margin: 0;
     padding: 0;
-    text-align: center;
+    overflow: hidden;
+    background-color: #004080;
+    width: 100vw;
+    height: 100vh;
 }
-
-h1 {
-    color: white;
-    font-size: 48px;
-}
-
-text {
-    text-anchor: middle;
-    dominant-baseline: middle;
-}
-
-polygon,
-rect {
-    stroke: black;
-    stroke-width: 2;
-    transform-origin: center;
-    transform-box: fill-box;
-}
-
-button,
-input {
-    padding: 10px 20px;
-    font-size: 16px;
-    border: none;
-    border-radius: 5px;
-    font-weight: bold;
-    margin: 8px 4px;
-    box-shadow: 0 0px 10px rgb(0 0 0 / 0.2);
-}
-
-button {
-    cursor: pointer;
-    background-color: #404040;
-    color: white;
-}
-
-button:hover {
-    background-color: #808080;
-}
-
-button:active {
-    background-color: #c0c0c0;
-}
-
-button:disabled {
-    background-color: #202020;
-}
-
-input {
-    cursor: text;
-    text-align: left;
-    font-weight: normal;
-    background-color: white;
-    color: black;
-    ;
+svg {
+    position: absolute;
+    border: 3px solid black;
 }

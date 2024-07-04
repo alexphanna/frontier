@@ -5,53 +5,8 @@
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
-    <div id="header">
-        <h1>Catan</h1>
-    </div>
-    <br><br>
-    <div id="menu">
-        Name
-        <br>
-        <input type="text" id="name" placeholder="Alex">
-        <br><br>
-        Server Address
-        <br>
-        <input type="text" id="address" placeholder="127.0.0.1:8080">
-        <br><br>
-        Color
-        <br>
-        <input type="text" id="color" placeholder="Red">
-        <br><br>
-        <button id="join" onclick="join()">Join Server</button>
-    </div>
-    <div id="lobby" style="display: none;">
-        <h2 id="players"></h2>
-        <button id="start" onclick="ws.send('start')">Start</button>
-    </div>
-    <div id="game" style="display: none;">
-        <svg width="100%" height="650" id="board">
-            <g id="tiles"></g>
-            <g id="roads"></g>
-            <g id="buildings"></g>
-        </svg>
-        <div id="buttons">
-            <button id="buildSettlement" onclick="buildBuilding(100, 100, color, 'settlement')">Build Settlement</button>
-            <button id="buildCity" onclick="buildBuilding(100, 100, color, 'city')">Build City</button>
-            <!--<button id="buildRoad" onclick="buildRoad(100, 100, 0, color)">Build Road</button>-->
-            <button id="rollDice" onclick="ws.send('rollDice')">Roll Dice</button>
-            <button id="endTurn" onclick="ws.send('endTurn')">End Turn</button>
-        </div>
-        <br>
-        <div id="inventory">
-            <p id="nearbyTiles"></p>
-            <p id="roll"></p>
-            <br>
-            <p id="resourcesInfo" ></p>
-            <br>
-            <p id="buildingsInfo" style="vertical-align: top;"></p>
-        </div>
-    </div>
-
+    <svg id="test" width="100" height="100" style="left: 0px; top: 0px">
+    </svg>
     <script src="script.js"></script>
 </body>
 </html>
