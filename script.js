@@ -1,39 +1,7 @@
 class Map {
-    constructor(svg, players) {
-        this.players = players;
-        let terrainCounts = {
-            "Hills": 3,
-            "Forest": 4,
-            "Mountains": 3,
-            "Fields": 4,
-            "Pasture": 4,
-            "Desert": 1
-        }
-        const terrains = Object.keys(terrainCounts);
-        if (players == 3 || players == 4) {
-            var terrainDistr = terrains.flatMap(terrain => Array(terrainCounts[terrain]).fill(terrain));
-            var numberDistr = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
-            shuffle(terrainDistr);
-            shuffle(numberDistr);
-            numberDistr.splice(terrainDistr.indexOf("Desert"), 0, 0);
-            this.terrainMap = [];
-            this.numberMap = [];
-            for (let i = 0; i < 5; i++) {
-                this.terrainMap.push([]);
-                this.numberMap.push([]);
-            }
-            for (let i = 3; i <= 5; i++) {
-                for (let j = 0; j < i; j++) {
-                    this.terrainMap[i - 3].push(terrainDistr.shift());
-                    this.numberMap[i - 3].push(numberDistr.shift());
-                    if (i != 5) {
-                        this.terrainMap[7 - i].push(terrainDistr.shift());
-                        this.numberMap[7 - i].push(numberDistr.shift());
-                    }
-                }
-            }
-        }
-        else if (players == 5 || players == 6) { } // Not implemented
+    constructor(svg, terrainMap, numberMap) {
+        this.terrainMap = terrainMap;
+        this.numberMap = numberMap;
 
         // Draw the map
         const maxLength = Math.max(...this.terrainMap.map(row => row.length));
@@ -162,6 +130,8 @@ class Map {
         edges.setAttribute("visibility", "hidden");
         svg.appendChild(legalEdges);
         legalEdges.setAttribute("visibility", "hidden");
+
+        center(svg);
     }
 }
 
@@ -293,19 +263,6 @@ function move(svg, left, top) {
     svg.style.top = top + 'px';
 }
 
-function shuffle(array) {
-    let currentIndex = array.length;
-
-    while (currentIndex != 0) {
-        let randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex--;
-
-        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-
-    return array;
-}
-
 function build(type) {
     let svg = document.getElementById('map');
     currentType = type;
@@ -340,10 +297,16 @@ function update(players) {
 
 }
 
+function endTurn() {
+    ws.send('end');
+    document.getElementById('bottomBar').style.visibility = 'hidden';
+}
+
 function joinServer(){
     ws = new WebSocket('ws://localhost:8080');
     ws.onopen = function() {
         ws.send(`add ${name} ${color}`);
+        ws.send('get map');
     }
     ws.onmessage = function(event) {
         console.log(event.data);
@@ -363,6 +326,13 @@ function joinServer(){
                 var road = createRoad(parseFloat(args[2]), parseFloat(args[3]), parseFloat(args[4]), args[5]);
                 document.getElementById('roads').appendChild(road);
             }
+        }
+        else if (args[0] === 'map') {
+            const map = JSON.parse(args[1]);
+            new Map(svg, map.terrainMap, map.numberMap);
+        }
+        else if (args[0] === 'start') {
+            document.getElementById('bottomBar').style.visibility = 'visible';
         }
     }
 }
@@ -416,9 +386,6 @@ document.addEventListener('mousedown', function (event) {
 
 let svg = document.getElementById('map');
 let currentType = "settlement";
-
-let map = new Map(svg, 4);
-center(svg);
 
 const name = prompt("Enter your name:");
 const color = prompt("Enter your color:");

@@ -8,10 +8,11 @@
 
 <body>
     <svg id="map" width="700" height="700" viewBox="0 0 100 100" style="left: 0px; top: 0px"></svg>
-    <div id="bottomBar"> <!-- aka turn bar -->
+    <div id="bottomBar" style="visibility: hidden;"> <!-- aka turn bar -->
         <button id="settlement" onclick="build('settlement')">Settlement</button>
         <button id="city" onclick="build('city')">City</button>
         <button id="road" onclick="build('road')">Road</button>
+        <button id="endTurn" onclick="endTurn()">End Turn</button>
     </div>
     <div id="leftBar">
         <h2>Alex (4)</h2>
