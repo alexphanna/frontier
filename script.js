@@ -1,50 +1,3 @@
-document.addEventListener('wheel', function (event) {
-    function resize(svg, percent) {
-        const rect = svg.getBoundingClientRect();
-        const width = svg.width.baseVal.value;
-        const newWidth = width * percent;
-        const height = svg.height.baseVal.value;
-        const newHeight = height * percent;
-
-        svg.setAttribute('width', newWidth);
-        svg.setAttribute('height', newHeight);
-
-        const deltaX = (newWidth - width) / 2;
-        const deltaY = (newHeight - height) / 2;
-        const newLeft = rect.left - deltaX;
-        const newTop = rect.top - deltaY;
-
-        move(svg, newLeft, newTop);
-    }
-
-    if (event.deltaY > 0 && svg.width.baseVal.value > 300) {
-        resize(svg, .9);
-    } else if (event.deltaY < 0) {
-        resize(svg, 1.1);
-    }
-});
-
-document.addEventListener('mousedown', function (event) {
-    let x = event.clientX;
-    let y = event.clientY;
-    let left = parseInt(svg.style.left);
-    let top = parseInt(svg.style.top);
-
-    function mouseMove(event) {
-        left += event.clientX - x;
-        top += event.clientY - y;
-        move(svg, left, top);
-        x = event.clientX;
-        y = event.clientY;
-    }
-
-    document.addEventListener('mousemove', mouseMove);
-
-    document.addEventListener('mouseup', function (event) {
-        document.removeEventListener('mousemove', mouseMove);
-    });
-});
-
 class Map {
     constructor(svg, players) {
         this.players = players;
@@ -79,7 +32,6 @@ class Map {
                     }
                 }
             }
-            console.log(this.terrainMap)
         }
         else if (players == 5 || players == 6) { } // Not implemented
 
@@ -137,13 +89,7 @@ class Map {
                         let circle = createCircle(vertex.x, vertex.y);
                         circle.addEventListener('click', function () {
                             vertices.setAttribute("visibility", "hidden");
-                            if (currentType == "settlement") {
-                                var building = createBuilding(vertex.x, vertex.y, "white", "settlement");
-                            }
-                            else if (currentType == "city") {
-                                var building = createBuilding(vertex.x, vertex.y, "white", "city");
-                            }
-                            buildings.appendChild(building);
+                            ws.send(`build ${currentType} ${vertex.x} ${vertex.y} ${color}`);
 
                             for (let i = 0; i < vertices.children.length; i++) {
                                 let circle = vertices.children[i];
@@ -192,8 +138,9 @@ class Map {
                         let circle = createCircle(edge[0], edge[1]);
                         circle.addEventListener('click', function () {
                             legalEdges.setAttribute("visibility", "hidden");
-                            var road = createRoad(edge[0], edge[1], edge[2], "white");
-                            roads.appendChild(road);
+                            ws.send(`build road ${edge[0]} ${edge[1]} ${edge[2]} ${color}`);
+                            //var road = createRoad(edge[0], edge[1], edge[2], "white");
+                            //roads.appendChild(road);
                             
                             // add new legal edges
                             for (let i = 0; i < edges.children.length; i++) {
@@ -244,7 +191,6 @@ function createRoad(x, y, angle, color) {
     road.setAttribute("x", x - road.getAttribute("width") / 2);
     road.setAttribute("y", y - road.getAttribute("height") / 2);
     road.setAttribute("transform", `rotate(${angle})`);
-    console.log(angle);
     return road;
 }
 
@@ -373,8 +319,108 @@ function build(type) {
     }
 }
 
+function update(players) {
+    let leftBar = document.getElementById('leftBar');
+    leftBar.innerHTML = '';
+    let header = document.createElement('h2');
+    header.style.color = color;
+    header.textContent = name;
+    leftBar.appendChild(header);
+
+    let rightBar = document.getElementById('rightBar');
+    rightBar.innerHTML = '';
+    for (let player of players) {
+        if (player.name != name) {
+            let header = document.createElement('h2');
+            header.style.color = player.color;
+            header.textContent = player.name;
+            rightBar.appendChild(header);
+        }
+    }
+
+}
+
+function joinServer(){
+    ws = new WebSocket('ws://localhost:8080');
+    ws.onopen = function() {
+        ws.send(`add ${name} ${color}`);
+    }
+    ws.onmessage = function(event) {
+        console.log(event.data);
+
+        const args = String(event.data).split(' ');
+        
+        if (args[0] === 'players') {
+            const players = JSON.parse(args[1]);
+            update(players);
+        }
+        else if (args[0] === 'build') {
+            if (args[1] === 'settlement' || args[1] === 'city') {
+                var building = createBuilding(parseFloat(args[2]), parseFloat(args[3]), args[4], args[1]);
+                document.getElementById('buildings').appendChild(building);
+            }
+            if (args[1] === 'road') {
+                var road = createRoad(parseFloat(args[2]), parseFloat(args[3]), parseFloat(args[4]), args[5]);
+                document.getElementById('roads').appendChild(road);
+            }
+        }
+    }
+}
+
+document.addEventListener('wheel', function (event) {
+    function resize(svg, percent) {
+        const rect = svg.getBoundingClientRect();
+        const width = svg.width.baseVal.value;
+        const newWidth = width * percent;
+        const height = svg.height.baseVal.value;
+        const newHeight = height * percent;
+
+        svg.setAttribute('width', newWidth);
+        svg.setAttribute('height', newHeight);
+
+        const deltaX = (newWidth - width) / 2;
+        const deltaY = (newHeight - height) / 2;
+        const newLeft = rect.left - deltaX;
+        const newTop = rect.top - deltaY;
+
+        move(svg, newLeft, newTop);
+    }
+
+    if (event.deltaY > 0 && svg.width.baseVal.value > 300) {
+        resize(svg, .9);
+    } else if (event.deltaY < 0) {
+        resize(svg, 1.1);
+    }
+});
+
+document.addEventListener('mousedown', function (event) {
+    let x = event.clientX;
+    let y = event.clientY;
+    let left = parseInt(svg.style.left);
+    let top = parseInt(svg.style.top);
+
+    function mouseMove(event) {
+        left += event.clientX - x;
+        top += event.clientY - y;
+        move(svg, left, top);
+        x = event.clientX;
+        y = event.clientY;
+    }
+
+    document.addEventListener('mousemove', mouseMove);
+
+    document.addEventListener('mouseup', function (event) {
+        document.removeEventListener('mousemove', mouseMove);
+    });
+});
+
 let svg = document.getElementById('map');
 let currentType = "settlement";
 
 let map = new Map(svg, 4);
 center(svg);
+
+const name = prompt("Enter your name:");
+const color = prompt("Enter your color:");
+
+joinServer();
