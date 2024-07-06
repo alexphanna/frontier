@@ -1,12 +1,50 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Catan</title>
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
+
 <body>
-    <svg id="test" width="300" height="300" viewBox="0 0 100 100" style="left: 0px; top: 0px">
-    </svg>
+    <svg id="map" width="700" height="700" viewBox="0 0 100 100" style="left: 0px; top: 0px"></svg>
+    <div class="bottombar"> <!-- aka turn bar -->
+        <button id="settlement" onclick="build('settlement')">Settlement</button>
+        <button id="city" onclick="build('city')">City</button>
+        <button id="road" onclick="build('road')">Road</button>
+    </div>
+    <div class="leftbar">
+        <h2>Alex (4)</h2>
+        <br>
+        <h3>Resources:</h3>
+        <ul style="list-style-type: none;">
+            <li>Brick: 2</li>
+            <li>Wood: 3</li>
+            <li>Wheat: 1</li>
+            <li>Sheep: 0</li>
+            <li>Ore: 0</li>
+        </ul>
+    </div>
+    <div class="rightbar">
+        <h2 style="color: yellow">Charlie (4)</h2>
+        <ul style="list-style-type: none;">
+            <li>Resources: 2</li>
+            <li>Developments: 1</li>
+        </ul>
+        <br>
+        <h2 style="color: magenta">Pim (3)</h2>
+        <ul style="list-style-type: none;">
+            <li>Resources: 2</li>
+            <li>Developments: 1</li>
+        </ul>
+        <br>
+        <h2 style="color: red">Alan (6)</h2>
+        <ul style="list-style-type: none;">
+            <li>Resources: 2</li>
+            <li>Developments: 1</li>
+        </ul>
+    </div>
     <script src="script.js"></script>
 </body>
+
 </html>
