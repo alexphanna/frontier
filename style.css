@@ -1,48 +1,68 @@
-/* Old Color Scheme
- * 40c0ff
- * 0080c0
- */
-
-html {
-    /*background-color: #40c0ff;*/
-    background-color: #202020;
+* {
+    font-family: Arial, sans-serif;
     box-sizing: border-box;
-    color: #dfdfdf;
-    text-align: center;
-    font-family: Arial, Helvetica, sans-serif;
-}
-
-div#header {
-    width: 100%;
-    height: 100px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #101010;
-}
-
-body {
+    color: white;
     margin: 0;
     padding: 0;
-    text-align: center;
 }
 
-h1 {
-    color: white;
-    font-size: 48px;
+ul li {
+    margin-left: 10px;
 }
 
+html, body {
+    overflow: hidden;
+    background-color: #202080;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+}
+svg {
+    position: absolute;
+    /*border: 1px solid red;*/
+}
+polygon,
+rect {
+    stroke: black;
+    stroke-width: .5;
+    transform-origin: center;
+    transform-box: fill-box;
+}
 text {
     text-anchor: middle;
     dominant-baseline: middle;
 }
-
-polygon,
-rect {
-    stroke: black;
-    stroke-width: 2;
-    transform-origin: center;
-    transform-box: fill-box;
+div#bottomBar, div#leftBar, div#rightBar {
+    background-color: #20202080;
+    position: fixed;
+    z-index: 1;
+    padding: 10px 20px;
+}
+div#bottomBar {
+    bottom: 0;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+div#leftBar, div#rightBar {
+    text-align: left;
+    height: 60%;
+    top: 20%;
+    width: 200px;
+}
+div#leftBar {
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+    left: 0;
+}
+div#rightBar {
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+    right: 0;
 }
 
 button,
@@ -50,7 +70,7 @@ input {
     padding: 10px 20px;
     font-size: 16px;
     border: none;
-    border-radius: 5px;
+    border-radius: 20px;
     font-weight: bold;
     margin: 8px 4px;
     box-shadow: 0 0px 10px rgb(0 0 0 / 0.2);
@@ -58,7 +78,7 @@ input {
 
 button {
     cursor: pointer;
-    background-color: #404040;
+    background-color: #40404080;
     color: white;
 }
 
@@ -72,13 +92,4 @@ button:active {
 
 button:disabled {
     background-color: #202020;
-}
-
-input {
-    cursor: text;
-    text-align: left;
-    font-weight: normal;
-    background-color: white;
-    color: black;
-    ;
 }

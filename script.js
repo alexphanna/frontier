@@ -1,408 +1,278 @@
 class Map {
-    constructor(terrainDistr, numberDistr) {
-        let width = 5 // should really be sent from the server
-
-        this.terrainMap = []
-        this.numberMap = []
-
-        for (let i = 3; i <= width; i++) {
-            this.terrainMap.push([]);
-            this.numberMap.push([]);
-            for (let j = 0; j < i; j++) {
-                this.terrainMap[this.terrainMap.length - 1].push(terrainDistr.pop());
-                this.numberMap[this.numberMap.length - 1].push(numberDistr.pop());
+    constructor(svg, players) {
+        this.players = players;
+        let terrainCounts = {
+            "Hills": 3,
+            "Forest": 4,
+            "Mountains": 3,
+            "Fields": 4,
+            "Pasture": 4,
+            "Desert": 1
+        }
+        const terrains = Object.keys(terrainCounts);
+        if (players == 3 || players == 4) {
+            var terrainDistr = terrains.flatMap(terrain => Array(terrainCounts[terrain]).fill(terrain));
+            var numberDistr = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
+            shuffle(terrainDistr);
+            shuffle(numberDistr);
+            numberDistr.splice(terrainDistr.indexOf("Desert"), 0, 0);
+            this.terrainMap = [];
+            this.numberMap = [];
+            for (let i = 0; i < 5; i++) {
+                this.terrainMap.push([]);
+                this.numberMap.push([]);
+            }
+            for (let i = 3; i <= 5; i++) {
+                for (let j = 0; j < i; j++) {
+                    this.terrainMap[i - 3].push(terrainDistr.shift());
+                    this.numberMap[i - 3].push(numberDistr.shift());
+                    if (i != 5) {
+                        this.terrainMap[7 - i].push(terrainDistr.shift());
+                        this.numberMap[7 - i].push(numberDistr.shift());
+                    }
+                }
             }
         }
-        for (let i = width - 1; i >= 3; i--) {
-            this.terrainMap.push([]);
-            this.numberMap.push([]);
-            for (let j = 0; j < i; j++) {
-                this.terrainMap[this.terrainMap.length - 1].push(terrainDistr.pop());
-                this.numberMap[this.numberMap.length - 1].push(numberDistr.pop());
-            }
+        else if (players == 5 || players == 6) { } // Not implemented
+
+        // Draw the map
+        const maxLength = Math.max(...this.terrainMap.map(row => row.length));
+
+        if (maxLength > this.terrainMap.length * (Math.sqrt(3) / 2)) {
+            var inradius = 100 / (maxLength * 2);
+            var sideLength = inradius * 2 / Math.sqrt(3)
+            var circumradius = sideLength;
+            var topMargin = (100 - (circumradius * ((this.terrainMap.length - 1) * 2 - 1))) / 4;
+            var leftMargin = 0;
+        }
+        else {
+            var circumradius = 100 / ((this.terrainMap.length - 1) * 2 - 1);
+            var sideLength = circumradius;
+            var inradius = sideLength * Math.sqrt(3) / 2;
+            var topMargin = 0;
+            var leftMargin = (100 - (maxLength * 2 * inradius)) / 2;
         }
 
-        const sideLength = 75;
-        const inradius = (Math.sqrt(3) / 2) * sideLength;
-        this.tiles = []
+        let tiles = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        tiles.setAttribute("id", "tiles");
+        svg.appendChild(tiles);
 
-        const svg = document.getElementById("board");
+        let roads = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        roads.setAttribute("id", "roads");
+        svg.appendChild(roads);
 
-        const terrains = [ "Hills", "Forest", "Mountains", "Fields", "Pasture", "Desert" ];
+        let buildings = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        buildings.setAttribute("id", "buildings");
+        svg.appendChild(buildings);
 
         for (let i = 0; i < this.terrainMap.length; i++) {
             for (let j = 0; j < this.terrainMap[i].length; j++) {
-                this.tiles.push(new Tile(terrains[this.terrainMap[i][j]], this.numberMap[i][j], 100 + inradius * 2 * j + (width - this.terrainMap[i].length) * inradius + (window.innerWidth - (width + .5) * inradius * 2) / 2 - svg.getAttribute("margin-left"), 100 + sideLength * 1.5 * i - svg.getAttribute("margin-top"), sideLength));
+                let tile = createTile(j * inradius * 2 + inradius * (maxLength + 1 - this.terrainMap[i].length) + leftMargin, i * (sideLength + Math.sqrt(Math.pow(sideLength, 2) - Math.pow(inradius, 2))) + circumradius + topMargin, inradius * 2, this.terrainMap[i][j], this.numberMap[i][j]);
+                tiles.appendChild(tile);
             }
         }
 
         // vertex = { x, y }
         this.vertices = [];
-        for (let tile of this.tiles) {
-            for (let point of tile.hexagon.getAttribute("points").split(" ")) {
-                if (this.vertices.filter(vertex => vertex.join(",") == point).length == 0) {
-                    this.vertices.push(point.split(","));
-                }
-            }
-        }
+        let vertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        vertices.setAttribute("id", "vertices");
+        for (let tile of svg.getElementsByClassName("tile")) {
+            for (let hexagon of tile.getElementsByTagName("polygon")) {
+                let points = hexagon.getAttribute("points").trim().split(" ");
+                for (let point of points) {
+                    let [x, y] = point.split(",");
+                    let vertex = { x: parseFloat(x), y: parseFloat(y) };
 
-        // edge = { x, y, θ }
-        this.edges = [];
-        for (let tile of this.tiles) {
-            const hexagonPoints = tile.hexagon.getAttribute("points").split(" ");
-            for (let i = 0; i < hexagonPoints.length; i++) {
-                const vertex1 = hexagonPoints[i].split(",");
-                const vertex2 = hexagonPoints[(i + 1) % (hexagonPoints.length - 1)].split(",");
-                let edge = [Math.min(vertex1[0], vertex2[0]) + Math.abs(vertex1[0] - vertex2[0]) / 2, Math.min(vertex1[1], vertex2[1]) + Math.abs(vertex1[1] - vertex2[1]) / 2];
-                edge.push(Math.atan2(vertex1[1] - vertex2[1], vertex1[0] - vertex2[0]) * 180 / Math.PI);
-                if (this.edges.filter(e => e.join(",") == edge.join(",")).length == 0) {
-                    this.edges.push(edge);
-                }
-            }
-        }
-    }
-    highlightTokens(roll) {
-        for (let tile of this.tiles) {
-            if (tile.name == "Desert") {
-                continue;
-            }
-            if (roll == 7) {
-                tile.token.setAttribute("fill", "#ff4040");
-            }
-            else {
-                if (tile.number == roll) {
-                    tile.token.setAttribute("fill", "#00c0ff");
-                }
-                else {
-                    tile.token.setAttribute("fill", "#ffe0a0");
-                }
-            }
-        }
-    }
-    getTile(name, number) {
-        for (let tile of this.tiles) {
-            if (tile.name == name && tile.number == number) {
-                return tile;
-            }
-        }
-    }
-    getEdge(tile1, tile2, theta) {
-        for (let edge of this.edges) {
-            if (Math.abs(edge[0] - (tile1.x + tile2.x) / 2) < 0.01 && Math.abs(edge[1] - (tile1.y + tile2.y) / 2) < 0.01 && Math.abs(edge[2] - theta) < 0.01){
-                return edge;
-            }
-        }
-    }
-    getVertex(tile1, tile2, tile3) {
-        for (let vertex of this.vertices) {
-            if (Math.abs(vertex[0] - (tile1.x + tile2.x + tile3.x) / 3) < 0.01 && Math.abs(vertex[1] - (tile1.y + tile2.y + tile3.y) / 3) < 0.01) {
-                return vertex;
-            }
-        }
-    }
-}
+                    if (!this.vertices.some(v => Math.round(v.x) == Math.round(vertex.x) && Math.round(v.y) == Math.round(vertex.y))) {
+                        this.vertices.push(vertex);
 
-class Tile {
-    constructor(name, number, x, y, sideLength) {
-        this.name = name;
-        this.number = number;
-        this.x = x;
-        this.y = y;
-        this.sideLength = sideLength;
+                        let circle = createCircle(vertex.x, vertex.y);
+                        circle.addEventListener('click', function () {
+                            vertices.setAttribute("visibility", "hidden");
+                            ws.send(`build ${currentType} ${vertex.x} ${vertex.y} ${color}`);
 
-        let group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        group.id = "tile";
+                            for (let i = 0; i < vertices.children.length; i++) {
+                                let circle = vertices.children[i];
+                                let x = parseFloat(circle.getAttribute("cx"));
+                                let y = parseFloat(circle.getAttribute("cy"));
+                                if (Math.sqrt(Math.pow(x - vertex.x, 2) + Math.pow(y - vertex.y, 2)) <= sideLength * 1.5) {
+                                    vertices.removeChild(circle);
+                                    i--;
+                                }
+                            }
 
-        this.hexagon = createHexagon(this.x, this.y, this.sideLength);
-
-        switch (this.name) {
-            case "Hills":
-                this.hexagon.setAttribute("fill", "#800000");
-                break;
-            case "Pasture":
-                this.hexagon.setAttribute("fill", "#00C000");
-                break;
-            case "Mountains":
-                this.hexagon.setAttribute("fill", "#808080");
-                break;
-            case "Fields":
-                this.hexagon.setAttribute("fill", "#ffff00");
-                break;
-            case "Forest":
-                this.hexagon.setAttribute("fill", "#004000");
-                break;
-            case "Desert":
-                this.hexagon.setAttribute("fill", "#ffd080");
-                break;
-        }
-        group.appendChild(this.hexagon);
-
-        if (this.name != "Desert") {
-            this.token = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            this.token.setAttribute("cx", this.x);
-            this.token.setAttribute("cy", this.y);
-            this.token.setAttribute("r", this.sideLength / 3);
-            this.token.setAttribute("fill", "#ffe0a0");
-            this.token.setAttribute("stroke", "black");
-            this.token.setAttribute("stroke-width", "2");
-            group.appendChild(this.token);
-
-            this.text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            this.text.setAttribute("x", this.x);
-            this.text.setAttribute("y", this.y - 2.5);
-            this.text.setAttribute("fill", (this.number == 6 || this.number == 8 ? "red" : "black"));
-            this.text.setAttribute("font-size", "30");
-            this.text.textContent = this.number;
-            group.appendChild(this.text);
-
-            let odds = 0;
-            switch (Number(this.number)) {
-                case 2:
-                case 12:
-                    odds = 1;
-                    break;
-                case 3:
-                case 11:
-                    odds = 2;
-                    break;
-                case 4:
-                case 10:
-                    odds = 3;
-                    break;
-                case 5:
-                case 9:
-                    odds = 4;
-                    break;
-                case 6:
-                case 8:
-                    odds = 5;
-                    break;
-            }
-            for (let i = 0; i < odds; i++) {
-                let prob = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                prob.setAttribute("cx", this.x + 5 * i - 5 * (odds - 1) / 2);
-                prob.setAttribute("cy", this.y + 12.5);
-                prob.setAttribute("r", 2);
-                prob.setAttribute("fill", (this.number == 6 || this.number == 8 ? "red" : "black"));
-                group.appendChild(prob);
-            }
-        }
-
-        document.getElementById("tiles").appendChild(group);
-    }
-
-    get inradius() {
-        return (Math.sqrt(3) / 2) * this.sideLength;
-    }
-
-    toString() {
-        return `${this.name}_${this.number}`;
-    }
-}
-
-class draggableElement {
-    dragMouseDown(e) {
-        e.preventDefault();
-        document.onmouseup = this.closeDragElement.bind(this);
-        document.onmousemove = this.elementDrag.bind(this)
-        this.raise();
-    }
-
-    elementDrag(e) {
-        e.preventDefault();
-        this.move(e.clientX, e.clientY - 100); // make num exact
-    }
-
-    closeDragElement() {
-        document.onmouseup = null;
-        document.onmousemove = null;
-        this.lower();
-        this.snap();
-    }
-}
-
-class Robber extends draggableElement {
-    constructor(x, y, radius) {
-        super();
-        this.snapPoints = map.tiles.map(tile => [tile.x, tile.y]);
-        this.radius = radius;
-
-        this.element = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        this.element.id = "robber";
-        this.element.setAttribute("cx", x);
-        this.element.setAttribute("cy", y);
-        this.element.setAttribute("r", this.radius);
-        this.element.setAttribute("fill", "black");
-        this.element.onmousedown = this.dragMouseDown.bind(this);
-        document.getElementById("board").appendChild(this.element);
-    }
-
-    move(x, y) {
-        this.element.setAttribute("cx", x);
-        this.element.setAttribute("cy", y);
-    }
-
-    snap() {
-        let closestPoint = null;
-        let closestDistance = Infinity;
-        for (let point of this.snapPoints) {
-            if (Math.sqrt((this.element.getAttribute("cx") - point[0]) ** 2 + (this.element.getAttribute("cy") - point[1]) ** 2) < closestDistance) {
-                closestPoint = point;
-                closestDistance = Math.sqrt((this.element.getAttribute("cx") - point[0]) ** 2 + (this.element.getAttribute("cy") - point[1]) ** 2);
-            }
-        }
-        this.move(closestPoint[0] - this.element.getAttribute("radius"), closestPoint[1] - this.element.getAttribute("radius"));
-    }
-
-    // robber is always on top
-    raise() { }
-    lower() { }
-}
-
-class Building extends draggableElement {
-    constructor(x, y, color, id) {
-        super();
-        this.snapPoints = map.vertices;
-        this.x = x;
-        this.y = y;
-        this.id = id;
-        this.color = color;
-        this.nearbyTiles = [];
-
-        switch (this.id) {
-            case "settlement":
-                this.shape = `0,0 10,-10 20,0 20,20 0,20`;
-                break;
-            case "city":
-                this.shape = `0,0 10,-10 20,0 20,10 40,10 40,30 0,30`;
-                break;
-        }
-
-        this.element = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        this.element.setAttribute("id", id);
-        this.element.setAttribute("fill", this.color);
-        this.element.setAttribute("points", this.shape);
-        this.element.onmousedown = this.dragMouseDown.bind(this); // Bind the event handler to the instance
-        document.getElementById("buildings").appendChild(this.element);
-        this.move(this.x - this.element.getBBox().width / 2, this.y - this.element.getBBox().width / 2);
-    }
-
-    move(x, y) {
-        this.element.setAttribute("points", this.shape.split(" ").map(point => {
-            let coords = point.split(",");
-            return `${parseInt(coords[0]) + x},${parseInt(coords[1]) + y}`;
-        }).join(" "));
-    }
-
-    snap() {
-        let closestPoint = null;
-        let closestDistance = Infinity;
-        for (let point of this.snapPoints) {
-            if (Math.sqrt((this.element.getAttribute("points").split(" ")[0].split(",")[0] - point[0]) ** 2 + (this.element.getAttribute("points").split(" ")[0].split(",")[1] - point[1]) ** 2) < closestDistance) {
-                closestPoint = point;
-                closestDistance = Math.sqrt((this.element.getAttribute("points").split(" ")[0].split(",")[0] - point[0]) ** 2 + (this.element.getAttribute("points").split(" ")[0].split(",")[1] - point[1]) ** 2);
-            }
-        }
-        this.move(Math.round(closestPoint[0]) - this.element.getBBox().width / 2, Math.round(closestPoint[1]) - this.element.getBBox().width / 2);
-
-        // when snapped record what resources the settlement is next to
-        this.nearbyTiles = [];
-        for (let tile of map.tiles) {
-            for (let point of tile.hexagon.getAttribute("points").split(" ")) {
-                if (Math.abs(point.split(",")[0] - closestPoint[0]) < 0.01
-                    && Math.abs(point.split(",")[1] - closestPoint[1]) < 0.01) {
-                    this.nearbyTiles.push(tile);
-                }
-            }
-        }
-        document.getElementById("nearbyTiles").innerHTML = this.nearbyTiles.toString();
-        ws.send(`build: ${this.id} ${this.nearbyTiles} ${this.color}`);
-    }
-
-    raise() {
-        document.getElementById("buildings").removeChild(this.element);
-        document.getElementById("board").appendChild(this.element);
-    }
-
-    lower() {
-        document.getElementById("board").removeChild(this.element);
-        document.getElementById("buildings").appendChild(this.element);
-    }
-}
-
-class Road extends draggableElement {
-    constructor(x, y, color) {
-        super();
-        this.snapPoints = map.edges;
-        this.x = x;
-        this.y = y;
-        this.color = color;
-
-        this.element = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        this.element.id = "road";
-        this.element.setAttribute("fill", this.color);
-        this.element.setAttribute("width", "40");
-        this.element.setAttribute("height", "10");
-        this.element.onmousedown = this.dragMouseDown.bind(this);
-        document.getElementById("roads").appendChild(this.element);
-        this.move(this.x - this.element.getAttribute("width") / 2, this.y - this.element.getAttribute("height") / 2);
-    }
-
-    move(x, y) {
-        this.element.setAttribute("x", x);
-        this.element.setAttribute("y", y);
-    }
-
-    snap() {
-        let closestPoint = null;
-        let closestDistance = Infinity;
-        for (let point of this.snapPoints) {
-            if (Math.sqrt((this.element.getAttribute("x") - point[0]) ** 2 + (this.element.getAttribute("y") - point[1]) ** 2) < closestDistance) {
-                closestPoint = point;
-                closestDistance = Math.sqrt((this.element.getAttribute("x") - point[0]) ** 2 + (this.element.getAttribute("y") - point[1]) ** 2);
-            }
-        }
-
-        this.nearbyTiles = [];
-        for (let tile of map.tiles) {
-            let hexagonPoints = tile.hexagon.getAttribute("points").split(" ");
-            for (let i = 0; i < hexagonPoints.length; i++) {
-                const vertex1 = hexagonPoints[i].split(",");
-                const vertex2 = hexagonPoints[(i + 1) % (hexagonPoints.length - 1)].split(",");
-                let edge = [Math.min(vertex1[0], vertex2[0]) + Math.abs(vertex1[0] - vertex2[0]) / 2, Math.min(vertex1[1], vertex2[1]) + Math.abs(vertex1[1] - vertex2[1]) / 2];
-                edge.push(Math.atan2(vertex1[1] - vertex2[1], vertex1[0] - vertex2[0]) * 180 / Math.PI);
-                if (Math.abs(edge[0] - closestPoint[0]) < 0.01
-                    && Math.abs(edge[1] - closestPoint[1]) < 0.01) {
-                    console.log(edge[2], closestPoint[2]);
-                    console.log(Math.abs(180 - Math.abs(edge[2]) - Math.abs(closestPoint[2])));
-                    if (Math.abs(180 - Math.abs(edge[2]) - Math.abs(closestPoint[2])) < 0.01 || Math.abs(edge[2] - closestPoint[2]) < 0.01) {
-                        this.nearbyTiles.push(tile);
+                            for (let i = 0; i < edges.children.length; i++) {
+                                let circle = edges.children[i];
+                                let x = parseFloat(circle.getAttribute("cx"));
+                                let y = parseFloat(circle.getAttribute("cy"));
+                                if (Math.sqrt(Math.pow(x - vertex.x, 2) + Math.pow(y - vertex.y, 2)) <= sideLength * 1 && !legalEdges.contains(circle)) {
+                                    legalEdges.appendChild(circle);
+                                }
+                            }
+                        });
+                        vertices.appendChild(circle);
                     }
                 }
             }
         }
-        console.log(this.nearbyTiles.toString());
+        svg.appendChild(vertices);
+        vertices.setAttribute("visibility", "hidden");
 
-        this.element.setAttribute("transform", `rotate(${closestPoint[2]})`);
-        this.move(Math.round(closestPoint[0]) - this.element.getAttribute("width") / 2, Math.round(closestPoint[1]) - this.element.getAttribute("height") / 2);
-        ws.send(`build: road ${this.nearbyTiles} ${closestPoint[2]} ${this.color}`);
-    }
+        // edge = { x, y, θ }
+        this.edges = [];
+        let legalEdges = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        legalEdges.setAttribute("id", "legalEdges");
+        let edges = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        edges.setAttribute("id", "edges");
+        for (let tile of svg.getElementsByClassName("tile")) {
+            for (let hexagon of tile.getElementsByTagName("polygon")) {
+                let points = hexagon.getAttribute("points").trim().split(" ");
+                for (let i = 0; i < points.length; i++) {
+                    const vertex1 = points[i].split(",");
+                    const vertex2 = points[(i + 1) % points.length].split(",");
+                    let edge = [Math.min(vertex1[0], vertex2[0]) + Math.abs(vertex1[0] - vertex2[0]) / 2, Math.min(vertex1[1], vertex2[1]) + Math.abs(vertex1[1] - vertex2[1]) / 2];
+                    edge.push(Math.atan2(vertex1[1] - vertex2[1], vertex1[0] - vertex2[0]) * 180 / Math.PI);
+                    if (this.edges.filter(e => e.join(",") == edge.join(",")).length == 0) {
+                        this.edges.push(edge);
 
-    raise() {
-        document.getElementById("roads").removeChild(this.element);
-        document.getElementById("board").appendChild(this.element);
-        this.element.setAttribute("transform", `rotate(0)`);
-    }
-
-    lower() {
-        document.getElementById("board").removeChild(this.element);
-        document.getElementById("roads").appendChild(this.element);
+                        let circle = createCircle(edge[0], edge[1]);
+                        circle.addEventListener('click', function () {
+                            legalEdges.setAttribute("visibility", "hidden");
+                            ws.send(`build road ${edge[0]} ${edge[1]} ${edge[2]} ${color}`);
+                            //var road = createRoad(edge[0], edge[1], edge[2], "white");
+                            //roads.appendChild(road);
+                            
+                            // add new legal edges
+                            for (let i = 0; i < edges.children.length; i++) {
+                                let circle = edges.children[i];
+                                let x = parseFloat(circle.getAttribute("cx"));
+                                let y = parseFloat(circle.getAttribute("cy"));
+                                if (Math.sqrt(Math.pow(x - edge[0], 2) + Math.pow(y - edge[1], 2)) <= sideLength * 1 && !legalEdges.contains(circle)) {
+                                    legalEdges.appendChild(circle);
+                                }
+                            }
+                            legalEdges.removeChild(circle);
+                        });
+                        edges.appendChild(circle);
+                    }
+                }
+            }
+        }
+        svg.appendChild(edges);
+        edges.setAttribute("visibility", "hidden");
+        svg.appendChild(legalEdges);
+        legalEdges.setAttribute("visibility", "hidden");
     }
 }
 
-function createHexagon(x, y, sideLength) {
+function createCircle(x, y) {
+    let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", x);
+    circle.setAttribute("cy", y);
+    circle.setAttribute("r", 1.5);
+    circle.setAttribute("fill", "transparent");
+    circle.setAttribute("stroke", "#ffffffc0");
+    circle.setAttribute("stroke-width", ".5");
+    circle.addEventListener('mouseover', function () {
+        circle.setAttribute("stroke", "#ffff00c0");
+    });
+    circle.addEventListener('mouseout', function () {
+        circle.setAttribute("stroke", "#ffffffc0");
+    });
+    return circle;
+}
+
+function createRoad(x, y, angle, color) {
+    let road = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    road.class = "road";
+    road.setAttribute("fill", color);
+    road.setAttribute("width", "8");
+    road.setAttribute("height", "2");
+    road.setAttribute("x", x - road.getAttribute("width") / 2);
+    road.setAttribute("y", y - road.getAttribute("height") / 2);
+    road.setAttribute("transform", `rotate(${angle})`);
+    return road;
+}
+
+function createBuilding(x, y, color, type) {
+    switch (type) {
+        case "settlement":
+            var shape = `0,0 2,-2 4,0 4,4 0,4`;
+            var width = 2;
+            var height = 2;
+            break;
+        case "city":
+            var shape = `0,0 2,-2 4,0 4,2 8,2 8,6 0,6`;
+            var width = 4;
+            var height = 3;
+            break;
+    }
+
+    let building = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    building.setAttribute("class", type);
+    building.setAttribute("fill", color);
+    building.setAttribute("points", shape);
+    building.setAttribute("points", shape.split(" ").map(point => {
+        let coords = point.split(",");
+        return `${parseInt(coords[0]) + x - width},${parseInt(coords[1]) + y - height}`;
+    }).join(" "));
+    return building;
+}
+
+function createTile(x, y, width, terrain, number) {
+    let tile = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    tile.setAttribute("id", `${terrain} ${number}`);
+    tile.setAttribute("class", "tile")
+    let hexagon = createHexagon(x, y, width);
+    hexagon.setAttribute("id", "hexagon")
+    switch (terrain) {
+        case "Hills":
+            hexagon.setAttribute("fill", "#800000");
+            break;
+        case "Pasture":
+            hexagon.setAttribute("fill", "#00C000");
+            break;
+        case "Mountains":
+            hexagon.setAttribute("fill", "#808080");
+            break;
+        case "Fields":
+            hexagon.setAttribute("fill", "#ffff00");
+            break;
+        case "Forest":
+            hexagon.setAttribute("fill", "#004000");
+            break;
+        case "Desert":
+            hexagon.setAttribute("fill", "#ffd080");
+            break;
+    }
+    hexagon.setAttribute("stroke", "black");
+    hexagon.setAttribute("stroke-width", ".5");
+    tile.appendChild(hexagon);
+    if (terrain != "Desert") {
+        let token = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        token.setAttribute("cx", x);
+        token.setAttribute("cy", y);
+        token.setAttribute("r", width / 5);
+        token.setAttribute("fill", "#ffe0a0");
+        token.setAttribute("stroke", "black");
+        token.setAttribute("stroke-width", ".5");
+        tile.appendChild(token);
+
+        let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", x);
+        text.setAttribute("y", y);
+        text.setAttribute("fill", (number == 6 || number == 8 ? "red" : "black"));
+        text.setAttribute("font-size", "5");
+        text.textContent = number;
+        tile.appendChild(text);
+    }
+    return tile;
+}
+
+function createHexagon(x, y, width) {
     let hexagon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
     let vertices = "";
+    let sideLength = width / 2 * (2 / Math.sqrt(3));
     for (let i = 0; i < 6; i++) {
         const angle = 2 * Math.PI / 6 * i - Math.PI / 2;
         vertices += `${x + sideLength * Math.cos(angle)},${y + sideLength * Math.sin(angle)} `;
@@ -411,103 +281,146 @@ function createHexagon(x, y, sideLength) {
     return hexagon;
 }
 
-function join() {
-    const name = document.getElementById("name").value;
-    const address = document.getElementById("address").value;
-    color = document.getElementById("color").value;
-    ws = new WebSocket(`ws://${address}`);
+function center(svg) {
+    const rect = svg.getBoundingClientRect();
+    const left = (window.innerWidth - rect.width) / 2;
+    const top = (window.innerHeight - rect.height) / 2;
+    move(svg, left, top);
+}
 
+function move(svg, left, top) {
+    svg.style.left = left + 'px';
+    svg.style.top = top + 'px';
+}
+
+function shuffle(array) {
+    let currentIndex = array.length;
+
+    while (currentIndex != 0) {
+        let randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+
+    return array;
+}
+
+function build(type) {
+    let svg = document.getElementById('map');
+    currentType = type;
+    if (type == "settlement" || type == "city") {
+        let vertices = svg.getElementById('vertices');
+        vertices.setAttribute("visibility", "visible");
+    }
+    else {
+        let edges = svg.getElementById('legalEdges');
+        edges.setAttribute("visibility", "visible");
+    }
+}
+
+function update(players) {
+    let leftBar = document.getElementById('leftBar');
+    leftBar.innerHTML = '';
+    let header = document.createElement('h2');
+    header.style.color = color;
+    header.textContent = name;
+    leftBar.appendChild(header);
+
+    let rightBar = document.getElementById('rightBar');
+    rightBar.innerHTML = '';
+    for (let player of players) {
+        if (player.name != name) {
+            let header = document.createElement('h2');
+            header.style.color = player.color;
+            header.textContent = player.name;
+            rightBar.appendChild(header);
+        }
+    }
+
+}
+
+function joinServer(){
+    ws = new WebSocket('ws://localhost:8080');
     ws.onopen = function() {
-        ws.send("addPlayer " + name + " " + color); 
-        document.getElementById("menu").setAttribute("style", "display: none")
-        document.getElementById("lobby").setAttribute("style", "display: block")
-        ws.send("generate");
-        ws.send("players");
-    };
+        ws.send(`add ${name} ${color}`);
+    }
+    ws.onmessage = function(event) {
+        console.log(event.data);
 
-    let terrains = [];
-    let numbers = [];
-
-    ws.onmessage = function (event) {
-        console.log(`Received message: ${event.data}`);
-
-        const data = String(event.data).split(": ");
-        if (data[0] == "terrains") {
-            terrains = data[1].substring(1, data[1].length - 1).split(",")
+        const args = String(event.data).split(' ');
+        
+        if (args[0] === 'players') {
+            const players = JSON.parse(args[1]);
+            update(players);
         }
-        else if (data[0] == "numbers") {
-            numbers = data[1].substring(1, data[1].length - 1).split(",")
-        }
-        else if (data[0] == "generated") {
-            map = new Map(terrains, numbers);
-        }
-        else if (data[0] == "dice") {
-            map.highlightTokens(data[1]);
-        }
-        else if (data[0] == "players") {
-            document.getElementById("players").innerHTML = "";
-            for (let player of data[1].substring(2, data[1].length - 2).split("\",\"")) {
-                document.getElementById("players").innerHTML += `<li>${player}</li>`;
+        else if (args[0] === 'build') {
+            if (args[1] === 'settlement' || args[1] === 'city') {
+                var building = createBuilding(parseFloat(args[2]), parseFloat(args[3]), args[4], args[1]);
+                document.getElementById('buildings').appendChild(building);
+            }
+            if (args[1] === 'road') {
+                var road = createRoad(parseFloat(args[2]), parseFloat(args[3]), parseFloat(args[4]), args[5]);
+                document.getElementById('roads').appendChild(road);
             }
         }
-        else if (data[0] == "started") {
-            document.getElementById("lobby").setAttribute("style", "display: none");
-            document.getElementById("game").setAttribute("style", "display: block");
-        }
-        /*
-         * edge is defined by four tiles
-         * vertex is defined by three tiles
-         */
-        else if (data[0] == "build") {
-            const args = data[1].split(" ");
-            if (args[0] == "settlement" || args[0] == "city") {
-                const nearbyTiles = args[1].split(",");
-                const tiles = nearbyTiles.map(nearbyTile => {
-                    const [name, number] = nearbyTile.split("_");
-                    return map.getTile(name, number);
-                });
-                const vertex = map.getVertex(tiles[0], tiles[1], tiles[2]);
-                buildBuilding(vertex[0], vertex[1], args[2], args[0]);
-            }
-            /*
-            else if (args[0] == "road") {
-                const nearbyTiles = args[1].split(",");
-                const tiles = nearbyTiles.map(nearbyTile => {
-                    const [name, number] = nearbyTile.split("_");
-                    return map.getTile(name, number);
-                });
-                const edge = map.getEdge(tiles[0], tiles[1], args[2]);
-                buildRoad(edge[0], edge[1], edge[2], args[3]);
-            }
-            */
-        }
-    };
-}
-function buildBuilding(x, y, color, type) {
-    new Building(parseInt(x), parseInt(y), color, type);
-}
-function buildRoad(x, y, theta, color) {
-    let road = new Road(parseInt(x), parseInt(y), color);
-    road.element.setAttribute("transform", `rotate(${theta})`);
+    }
 }
 
-var color;
-var map;
+document.addEventListener('wheel', function (event) {
+    function resize(svg, percent) {
+        const rect = svg.getBoundingClientRect();
+        const width = svg.width.baseVal.value;
+        const newWidth = width * percent;
+        const height = svg.height.baseVal.value;
+        const newHeight = height * percent;
 
-/* to be synced:
- * buildings
- * player info
- * robber
- * 
- * synced:
- * dice roll
- * map
- */
+        svg.setAttribute('width', newWidth);
+        svg.setAttribute('height', newHeight);
 
-/* server-side:
- * - players
- * - turn logic
- * client-side:
- * - graphics
- * 
- */
+        const deltaX = (newWidth - width) / 2;
+        const deltaY = (newHeight - height) / 2;
+        const newLeft = rect.left - deltaX;
+        const newTop = rect.top - deltaY;
+
+        move(svg, newLeft, newTop);
+    }
+
+    if (event.deltaY > 0 && svg.width.baseVal.value > 300) {
+        resize(svg, .9);
+    } else if (event.deltaY < 0) {
+        resize(svg, 1.1);
+    }
+});
+
+document.addEventListener('mousedown', function (event) {
+    let x = event.clientX;
+    let y = event.clientY;
+    let left = parseInt(svg.style.left);
+    let top = parseInt(svg.style.top);
+
+    function mouseMove(event) {
+        left += event.clientX - x;
+        top += event.clientY - y;
+        move(svg, left, top);
+        x = event.clientX;
+        y = event.clientY;
+    }
+
+    document.addEventListener('mousemove', mouseMove);
+
+    document.addEventListener('mouseup', function (event) {
+        document.removeEventListener('mousemove', mouseMove);
+    });
+});
+
+let svg = document.getElementById('map');
+let currentType = "settlement";
+
+let map = new Map(svg, 4);
+center(svg);
+
+const name = prompt("Enter your name:");
+const color = prompt("Enter your color:");
+
+joinServer();
