@@ -22,6 +22,13 @@ svg {
     position: absolute;
     /*border: 1px solid red;*/
 }
+polygon,
+rect {
+    stroke: black;
+    stroke-width: .5;
+    transform-origin: center;
+    transform-box: fill-box;
+}
 text {
     text-anchor: middle;
     dominant-baseline: middle;
