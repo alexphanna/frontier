@@ -7,18 +7,18 @@ class Map {
         const maxLength = Math.max(...this.terrainMap.map(row => row.length));
 
         if (maxLength > this.terrainMap.length * (Math.sqrt(3) / 2)) {
-            var inradius = 100 / (maxLength * 2);
-            var sideLength = inradius * 2 / Math.sqrt(3)
-            var circumradius = sideLength;
-            var topMargin = (100 - (circumradius * ((this.terrainMap.length - 1) * 2 - 1))) / 4;
-            var leftMargin = 0;
+            this.inradius = 100 / (maxLength * 2);
+            this.sideLength = this.inradius * 2 / Math.sqrt(3)
+            this.circumradius = this.sideLength;
+            this.topMargin = (100 - (this.circumradius * ((this.terrainMap.length - 1) * 2 - 1))) / 4;
+            this.leftMargin = 0;
         }
         else {
-            var circumradius = 100 / ((this.terrainMap.length - 1) * 2 - 1);
-            var sideLength = circumradius;
-            var inradius = sideLength * Math.sqrt(3) / 2;
-            var topMargin = 0;
-            var leftMargin = (100 - (maxLength * 2 * inradius)) / 2;
+            this.circumradius = 100 / ((this.terrainMap.length - 1) * 2 - 1);
+            this.sideLength = this.circumradius;
+            this.inradius = this.sideLength * Math.sqrt(3) / 2;
+            this.topMargin = 0;
+            this.leftMargin = (100 - (maxLength * 2 * this.inradius)) / 2;
         }
 
         let tiles = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -35,7 +35,7 @@ class Map {
 
         for (let i = 0; i < this.terrainMap.length; i++) {
             for (let j = 0; j < this.terrainMap[i].length; j++) {
-                let tile = createTile(j * inradius * 2 + inradius * (maxLength + 1 - this.terrainMap[i].length) + leftMargin, i * (sideLength + Math.sqrt(Math.pow(sideLength, 2) - Math.pow(inradius, 2))) + circumradius + topMargin, inradius * 2, this.terrainMap[i][j], this.numberMap[i][j]);
+                let tile = createTile(j * this.inradius * 2 + this.inradius * (maxLength + 1 - this.terrainMap[i].length) + this.leftMargin, i * (this.sideLength + Math.sqrt(Math.pow(this.sideLength, 2) - Math.pow(this.inradius, 2))) + this.circumradius + this.topMargin, this.inradius * 2, this.terrainMap[i][j], this.numberMap[i][j]);
                 tiles.appendChild(tile);
             }
         }
@@ -63,7 +63,7 @@ class Map {
                                 let circle = vertices.children[i];
                                 let x = parseFloat(circle.getAttribute("cx"));
                                 let y = parseFloat(circle.getAttribute("cy"));
-                                if (Math.sqrt(Math.pow(x - vertex.x, 2) + Math.pow(y - vertex.y, 2)) <= sideLength * 1.5) {
+                                if (Math.sqrt(Math.pow(x - vertex.x, 2) + Math.pow(y - vertex.y, 2)) <= this.sideLength * 1.5) {
                                     vertices.removeChild(circle);
                                     i--;
                                 }
@@ -73,7 +73,7 @@ class Map {
                                 let circle = edges.children[i];
                                 let x = parseFloat(circle.getAttribute("cx"));
                                 let y = parseFloat(circle.getAttribute("cy"));
-                                if (Math.sqrt(Math.pow(x - vertex.x, 2) + Math.pow(y - vertex.y, 2)) <= sideLength * 1 && !legalEdges.contains(circle)) {
+                                if (Math.sqrt(Math.pow(x - vertex.x, 2) + Math.pow(y - vertex.y, 2)) <= this.sideLength * 1 && !legalEdges.contains(circle)) {
                                     legalEdges.appendChild(circle);
                                 }
                             }
@@ -115,7 +115,7 @@ class Map {
                                 let circle = edges.children[i];
                                 let x = parseFloat(circle.getAttribute("cx"));
                                 let y = parseFloat(circle.getAttribute("cy"));
-                                if (Math.sqrt(Math.pow(x - edge[0], 2) + Math.pow(y - edge[1], 2)) <= sideLength * 1 && !legalEdges.contains(circle)) {
+                                if (Math.sqrt(Math.pow(x - edge[0], 2) + Math.pow(y - edge[1], 2)) <= this.sideLength * 1 && !legalEdges.contains(circle)) {
                                     legalEdges.appendChild(circle);
                                 }
                             }
@@ -133,8 +133,41 @@ class Map {
 
         center(svg);
     }
-}
+    highlightTokens(number) {
+        console.log("hi")
+        for (let tile of svg.getElementsByClassName("tile")) {
+            if (tile.id.startsWith("Desert")) {
+                continue;
+            }
+            if (number == 7) {
+                tile.getElementsByTagNameNS("http://www.w3.org/2000/svg", "circle")[0].setAttribute("fill", "#ff4040");
+            }
+            else {
+                if (tile.id.endsWith(number)) {
+                    tile.getElementsByTagNameNS("http://www.w3.org/2000/svg", "circle")[0].setAttribute("fill", "#00c0ff");
+                }
+                else {
+                    tile.getElementsByTagNameNS("http://www.w3.org/2000/svg", "circle")[0].setAttribute("fill", "#ffe0a0");
+                }
+            }
+        }
+    }
+    vertexToStandard(x, y) { 
+        let row = Math.floor((y - this.topMargin) / (this.circumradius * 2 - (this.circumradius * 2 - this.sideLength) / 2));
 
+        if (row < 2) {
+            var col = Math.floor((x - this.inradius  * ((this.terrainMap[row].length / 2) - row)) / this.inradius);
+        }
+        else if (row > 3) {
+            var col = Math.floor((x + this.inradius * ((this.terrainMap[row].length / 2) - row)) / this.inradius);
+        }
+        else {
+            var col = x / this.inradius;
+        }
+
+        return { row, col };
+    }
+}
 function createCircle(x, y) {
     let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     circle.setAttribute("cx", x);
@@ -328,11 +361,19 @@ function joinServer(){
             }
         }
         else if (args[0] === 'map') {
-            const map = JSON.parse(args[1]);
-            new Map(svg, map.terrainMap, map.numberMap);
+            const maps = JSON.parse(args[1]);
+            map = new Map(svg, maps.terrainMap, maps.numberMap);
+
+            console.log(map.vertexToStandard(40, 10.566)); // 0, 2
+            console.log(map.vertexToStandard(50, 39.434)); // 2, 5
+            console.log(map.vertexToStandard(20, 10.566)); // 0, 0
+            console.log(map.vertexToStandard(70, 62.528)); // 3, 7
         }
         else if (args[0] === 'start') {
             document.getElementById('bottomBar').style.visibility = 'visible';
+        }
+        else if (args[0] === 'roll') {
+            map.highlightTokens(parseInt(args[1]));
         }
     }
 }
@@ -386,6 +427,7 @@ document.addEventListener('mousedown', function (event) {
 
 let svg = document.getElementById('map');
 let currentType = "settlement";
+let map;
 
 const name = prompt("Enter your name:");
 const color = prompt("Enter your color:");

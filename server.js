@@ -45,7 +45,7 @@ function generateMap() {
             }
         }
     }
-    return JSON.stringify({ terrainMap, numberMap });
+    return { terrainMap, numberMap };
 }
 
 function shuffle(array) {
@@ -73,6 +73,22 @@ let players = new Set();
 let map = generateMap();
 let turn = 0;
 
+/*       [0, 0, 0, 0, 0, 0, 0]
+ *    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+ * [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+ *    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+ *       [0, 0, 0, 0, 0, 0, 0]
+ */
+let vertices = [];
+for (let i = 0; i < map.terrainMap.length; i++) {
+    vertices.push([]);
+    for (let j = 0; j < map.terrainMap[i].length * 2 + 1; j++) {
+        vertices[i].push(true);
+    }
+}
+
+console.log(vertices);
+
 wss.on('connection', (ws) => {
     console.log('connected');
 
@@ -94,12 +110,32 @@ wss.on('connection', (ws) => {
         }
         else if (args[0] === 'get') {
             if (args[1] === 'map') {
-                ws.send('map ' + map);
+                ws.send('map ' + JSON.stringify(map));
+            }
+            else if (args[1] === 'vertices') {
+                ws.send('vertices ' + JSON.stringify(vertices));
+            }
+            else if (args[1] === 'edges') {
+                // broadcast all legal edges
             }
         }
         else if (args[0] === 'end') {
             turn++;
-            Array.from(players)[turn % players.size].ws.send('start');
+            if (turn < players.size * 2) {
+                if (turn < players.size) {
+                    Array.from(players)[turn].ws.send('start');
+                }
+                else {
+                    Array.from(players)[players.size - 1 - (turn % players.size)].ws.send('start');
+                }
+            }
+            else {
+                // roll dice
+                Array.from(players)[turn % players.size].ws.send('start');
+                broadcast('roll ' + Math.floor(Math.random() * 6 + 1));
+
+                // distribute resources
+            }
         }
     });
 
