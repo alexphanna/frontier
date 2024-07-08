@@ -41,52 +41,19 @@ class Map {
         }
 
         // vertex = { x, y }
-        this.vertices = [];
-        ws.send('get vertices');
-        let vertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        vertices.setAttribute("id", "vertices");/*
-        for (let tile of svg.getElementsByClassName("tile")) {
-            for (let hexagon of tile.getElementsByTagName("polygon")) {
-                let points = hexagon.getAttribute("points").trim().split(" ");
-                for (let point of points) {
-                    let [x, y] = point.split(",");
-                    let vertex = { x: parseFloat(x), y: parseFloat(y) };
+        this.settlementVertices = [];
+        ws.send('get vertices settlement');
+        let settlementVertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        settlementVertices.setAttribute("id", "settlementVertices");
+        svg.appendChild(settlementVertices);
+        settlementVertices.setAttribute("visibility", "hidden");
 
-                    if (!this.vertices.some(v => Math.round(v.x) == Math.round(vertex.x) && Math.round(v.y) == Math.round(vertex.y))) {
-                        this.vertices.push(vertex);
-
-                        let circle = createCircle(vertex.x, vertex.y);
-                        circle.addEventListener('click', function () {
-                            vertices.setAttribute("visibility", "hidden");
-                            const standard = map.vertexToStandard(vertex.x, vertex.y);
-                            ws.send(`build ${currentType} ${standard.row} ${standard.col} ${color}`);
-
-                            /*for (let i = 0; i < vertices.children.length; i++) {
-                                let circle = vertices.children[i];
-                                let x = parseFloat(circle.getAttribute("cx"));
-                                let y = parseFloat(circle.getAttribute("cy"));
-                                if (Math.sqrt(Math.pow(x - vertex.x, 2) + Math.pow(y - vertex.y, 2)) <= this.sideLength * 1.5) {
-                                    vertices.removeChild(circle);
-                                    i--;
-                                }
-                            }
-
-                            for (let i = 0; i < edges.children.length; i++) {
-                                let circle = edges.children[i];
-                                let x = parseFloat(circle.getAttribute("cx"));
-                                let y = parseFloat(circle.getAttribute("cy"));
-                                if (Math.sqrt(Math.pow(x - vertex.x, 2) + Math.pow(y - vertex.y, 2)) <= this.sideLength * 1 && !legalEdges.contains(circle)) {
-                                    legalEdges.appendChild(circle);
-                                }
-                            }
-                        });
-                        vertices.appendChild(circle);
-                    }
-                }
-            }
-        }*/
-        svg.appendChild(vertices);
-        vertices.setAttribute("visibility", "hidden");
+        this.cityVertices = [];
+        ws.send('get vertices city');
+        let cityVertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        cityVertices.setAttribute("id", "cityVertices");
+        svg.appendChild(cityVertices);
+        cityVertices.setAttribute("visibility", "hidden");
 
         // edge = { x, y, θ }
         this.edges = [];
@@ -215,7 +182,7 @@ function createRoad(x, y, angle, color) {
     return road;
 }
 
-function createBuilding(x, y, color, type) {
+function createBuilding(x, y, fill, stroke, type) {
     switch (type) {
         case "settlement":
             var shape = `0,0 2,-2 4,0 4,4 0,4`;
@@ -231,7 +198,9 @@ function createBuilding(x, y, color, type) {
 
     let building = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
     building.setAttribute("class", type);
-    building.setAttribute("fill", color);
+    building.setAttribute("fill", fill);
+    building.setAttribute("stroke", stroke);
+    building.setAttribute("stroke-width", ".5");
     building.setAttribute("points", shape);
     building.setAttribute("points", shape.split(" ").map(point => {
         let coords = point.split(",");
@@ -257,7 +226,7 @@ function createTile(x, y, width, terrain, number) {
             hexagon.setAttribute("fill", "#808080");
             break;
         case "Fields":
-            hexagon.setAttribute("fill", "#ffff00");
+            hexagon.setAttribute("fill", "#C0C000");
             break;
         case "Forest":
             hexagon.setAttribute("fill", "#004000");
@@ -317,8 +286,12 @@ function move(svg, left, top) {
 function build(type) {
     let svg = document.getElementById('map');
     currentType = type;
-    if (type == "settlement" || type == "city") {
-        let vertices = svg.getElementById('vertices');
+    if (type == "settlement") {
+        let vertices = svg.getElementById('settlementVertices');
+        vertices.setAttribute("visibility", "visible");
+    }
+    else if (type == "city") {
+        let vertices = svg.getElementById('cityVertices');
         vertices.setAttribute("visibility", "visible");
     }
     else {
@@ -330,18 +303,16 @@ function build(type) {
 function update(players) {
     let leftBar = document.getElementById('leftBar');
     leftBar.innerHTML = '';
-    let header = document.createElement('h2');
-    header.style.color = color;
-    header.textContent = name;
-    leftBar.appendChild(header);
-
     let rightBar = document.getElementById('rightBar');
     rightBar.innerHTML = '';
     for (let player of players) {
-        if (player.name != name) {
-            let header = document.createElement('h2');
-            header.style.color = player.color;
-            header.textContent = player.name;
+        let header = document.createElement('h2');
+        header.style.color = color;
+        header.textContent = `${player.name} (${player.points})`;
+        if (player.name == name) {
+            leftBar.appendChild(header);
+        }
+        else {
             rightBar.appendChild(header);
         }
     }
@@ -371,11 +342,16 @@ function joinServer() {
         else if (args[0] === 'build') {
             const vertex = map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
             if (args[1] === 'settlement' || args[1] === 'city') {
-                var building = createBuilding(vertex.x, vertex.y, args[4], args[1]);
+                const building = createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
                 document.getElementById('buildings').appendChild(building);
             }
+            else if (args[1] == 'city') {
+                const building = createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
+                let buildings = document.getElementById('buildings');
+                buildings.appendChild(building);
+            }
             if (args[1] === 'road') {
-                var road = createRoad(vertex.x, vertex.y, parseFloat(args[4]), args[5]);
+                const road = createRoad(vertex.x, vertex.y, parseFloat(args[4]), args[5]);
                 document.getElementById('roads').appendChild(road);
             }
         }
@@ -390,20 +366,31 @@ function joinServer() {
             map.highlightTokens(parseInt(args[1]));
         }
         else if (args[0] === 'vertices') {
-            const legalVertices = JSON.parse(args[1]);
-            let vertices = svg.getElementById('vertices');
+            var legalVertices = JSON.parse(args[2]);
+            var vertices = svg.getElementById(`${args[1]}Vertices`);
             vertices.innerHTML = '';
             for (let i = 0; i < legalVertices.length; i++) {
                 for (let j = 0; j < legalVertices[i].length; j++) {
                     if (legalVertices[i][j]) {
                         const vertex = map.standardToVertex(i, j);
-                        let circle = createCircle(parseInt(vertex.x), parseInt(vertex.y));
+                        /*let circle = createCircle(parseInt(vertex.x), parseInt(vertex.y));
                         circle.addEventListener('click', function () {
-                            let vertices = svg.getElementById('vertices');
                             vertices.setAttribute("visibility", "hidden");
                             ws.send(`build ${currentType} ${i} ${j} ${color}`);
                         });
-                        vertices.appendChild(circle);
+                        vertices.appendChild(circle);*/
+                        let settlement = createBuilding(vertex.x, vertex.y, "transparent", "#ffffffc0", "settlement");
+                        settlement.addEventListener('click', function () {
+                            vertices.setAttribute("visibility", "hidden");
+                            ws.send(`build ${currentType} ${i} ${j} ${color}`);
+                        });
+                        settlement.addEventListener('mouseover', function () {
+                            settlement.setAttribute("stroke", "#ffff00c0");
+                        });
+                        settlement.addEventListener('mouseout', function () {
+                            settlement.setAttribute("stroke", "#ffffffc0");
+                        });
+                        vertices.appendChild(settlement);
                     }
                 }
             }

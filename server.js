@@ -67,6 +67,20 @@ function broadcast(message) {
     }
 }
 
+function broadcastVertices() {
+    broadcast('vertices settlement ' + JSON.stringify(settlementVertices));
+    for (let i = 0; i < players.size; i++) {
+        const vertices = [];
+        for (let j = 0; j < cityVertices.length; j++) {
+            vertices.push([]);
+            for (let k = 0; k < cityVertices[j].length; k++) {
+                vertices[j].push(cityVertices[j][k] == i);
+            }
+        }   
+        Array.from(players)[i].ws.send('vertices city ' + JSON.stringify(vertices));
+    }
+}
+
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 let players = new Set();
@@ -80,14 +94,19 @@ let turn = 0;
  *  x [0, 0, 0, 0, 0, 0, 0, 0, 0] x
  *  x  x [0, 0, 0, 0, 0, 0, 0] x  x
  */
-let vertices = [];
+let settlementVertices = [];
+let cityVertices = [];
 for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
-    let temp = [];
+    let temp1 = [];
+    let temp2 = [];
     for (let j = 0; j < map.terrainMap[i].length * 2 + 1; j++) {
-        temp.push(true);
+        temp1.push(true);
+        temp2.push(NaN);
     }
-    vertices.unshift(Array.from(temp));
-    vertices.push(Array.from(temp));
+    settlementVertices.unshift(Array.from(temp1));
+    settlementVertices.push(Array.from(temp1));
+    cityVertices.unshift(Array.from(temp2));
+    cityVertices.push(Array.from(temp2));
 }
 
 wss.on('connection', (ws) => {
@@ -108,19 +127,39 @@ wss.on('connection', (ws) => {
         else if (args[0] === 'build') {
             const row = parseInt(args[2]);
             const col = parseInt(args[3]);
-            if (vertices[row][col]) {
+            if ((args[1] === 'settlement' && settlementVertices[row][col]) || (args[1] === 'city' && cityVertices[row][col] === turn % players.size)) {
+                Array.from(players)[turn % players.size].points++;
                 broadcast(String(message));
-                vertices[row][col] = false;
-                for (let i = (col == 0 ? 0 : -1); i <= (col == vertices[row].length - 1 ? 0 : 1); i++) {
-                    vertices[row][col + i] = false;
+
+                if (args[1] === 'settlement') {
+                    settlementVertices[row][col] = false;
+                    cityVertices[row][col] = turn % players.size;
+                    for (let i = (col == 0 ? 0 : -1); i <= (col == settlementVertices[row].length - 1 ? 0 : 1); i++) {
+                        settlementVertices[row][col + i] = false;
+                    }
+
+                    if (((row <= 2 && col % 2) || (row >= 3 && !(col % 2))) && row > 0) {
+                        if (settlementVertices[row].length != settlementVertices[row - 1].length) {
+                            settlementVertices[row - 1][col + (row >= Math.floor(settlementVertices.length / 2) ? 1 : -1)] = false;
+                        }
+                        else {
+                            settlementVertices[row - 1][col] = false;
+                        }
+                    }
+                    else if (row < settlementVertices.length - 1) {
+                        if (settlementVertices[row].length != settlementVertices[row + 1].length) {
+                            settlementVertices[row + 1][col + (row >= Math.floor(settlementVertices.length / 2) ? -1 : 1)] = false;
+                        }
+                        else {
+                            settlementVertices[row + 1][col] = false;
+                        }
+                    }
                 }
-                if (((row <= 2 && col % 2) || (row >= 3 && !(col % 2))) && row < vertices.length - 1) {
-                    vertices[row - 1][col] = false;
+                else if (args[1] === 'city') {
+                    cityVertices[row][col] = NaN;
                 }
-                else if (row > 0) {
-                    vertices[row + 1][col + Math.floor(vertices.length / 2 - (row + 1))] = false;
-                }
-                ws.send('vertices ' + JSON.stringify(vertices));
+                broadcastVertices();
+                broadcast('players ' + JSON.stringify(Array.from(players))); // increases points
             }
         }
         else if (args[0] === 'get') {
@@ -128,7 +167,12 @@ wss.on('connection', (ws) => {
                 ws.send('map ' + JSON.stringify(map));
             }
             else if (args[1] === 'vertices') {
-                ws.send('vertices ' + JSON.stringify(vertices));
+                if (args[2] === "settlement") {
+                    ws.send('vertices settlement ' + JSON.stringify(settlementVertices));
+                }
+                else if (args[2] === "city") {
+                    ws.send('vertices city ' + JSON.stringify(cityVertices));
+                }
             }
         }
         else if (args[0] === 'end') {

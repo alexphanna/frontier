@@ -24,8 +24,8 @@ svg {
 }
 polygon,
 rect {
-    stroke: black;
-    stroke-width: .5;
+    /*stroke: black;
+    stroke-width: .5;*/
     transform-origin: center;
     transform-box: fill-box;
 }
