@@ -73,21 +73,22 @@ let players = new Set();
 let map = generateMap();
 let turn = 0;
 
-/*       [0, 0, 0, 0, 0, 0, 0]
- *    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+/*  x  x [0, 0, 0, 0, 0, 0, 0] x  x
+ *  x [0, 0, 0, 0, 0, 0, 0, 0, 0] x
  * [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
- *    [0, 0, 0, 0, 0, 0, 0, 0, 0]
- *       [0, 0, 0, 0, 0, 0, 0]
+ * [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+ *  x [0, 0, 0, 0, 0, 0, 0, 0, 0] x
+ *  x  x [0, 0, 0, 0, 0, 0, 0] x  x
  */
 let vertices = [];
-for (let i = 0; i < map.terrainMap.length; i++) {
-    vertices.push([]);
+for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
+    let temp = [];
     for (let j = 0; j < map.terrainMap[i].length * 2 + 1; j++) {
-        vertices[i].push(true);
+        temp.push(true);
     }
+    vertices.unshift(Array.from(temp));
+    vertices.push(Array.from(temp));
 }
-
-console.log(vertices);
 
 wss.on('connection', (ws) => {
     console.log('connected');
@@ -105,8 +106,22 @@ wss.on('connection', (ws) => {
             }
         }
         else if (args[0] === 'build') {
-            // Check legality on server
-            broadcast(String(message));
+            const row = parseInt(args[2]);
+            const col = parseInt(args[3]);
+            if (vertices[row][col]) {
+                broadcast(String(message));
+                vertices[row][col] = false;
+                for (let i = (col == 0 ? 0 : -1); i <= (col == vertices[row].length - 1 ? 0 : 1); i++) {
+                    vertices[row][col + i] = false;
+                }
+                if (((row <= 2 && col % 2) || (row >= 3 && !(col % 2))) && row < vertices.length - 1) {
+                    vertices[row - 1][col] = false;
+                }
+                else if (row > 0) {
+                    vertices[row + 1][col + Math.floor(vertices.length / 2 - (row + 1))] = false;
+                }
+                ws.send('vertices ' + JSON.stringify(vertices));
+            }
         }
         else if (args[0] === 'get') {
             if (args[1] === 'map') {
@@ -114,9 +129,6 @@ wss.on('connection', (ws) => {
             }
             else if (args[1] === 'vertices') {
                 ws.send('vertices ' + JSON.stringify(vertices));
-            }
-            else if (args[1] === 'edges') {
-                // broadcast all legal edges
             }
         }
         else if (args[0] === 'end') {

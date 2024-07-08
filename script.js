@@ -42,8 +42,9 @@ class Map {
 
         // vertex = { x, y }
         this.vertices = [];
+        ws.send('get vertices');
         let vertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        vertices.setAttribute("id", "vertices");
+        vertices.setAttribute("id", "vertices");/*
         for (let tile of svg.getElementsByClassName("tile")) {
             for (let hexagon of tile.getElementsByTagName("polygon")) {
                 let points = hexagon.getAttribute("points").trim().split(" ");
@@ -57,9 +58,10 @@ class Map {
                         let circle = createCircle(vertex.x, vertex.y);
                         circle.addEventListener('click', function () {
                             vertices.setAttribute("visibility", "hidden");
-                            ws.send(`build ${currentType} ${vertex.x} ${vertex.y} ${color}`);
+                            const standard = map.vertexToStandard(vertex.x, vertex.y);
+                            ws.send(`build ${currentType} ${standard.row} ${standard.col} ${color}`);
 
-                            for (let i = 0; i < vertices.children.length; i++) {
+                            /*for (let i = 0; i < vertices.children.length; i++) {
                                 let circle = vertices.children[i];
                                 let x = parseFloat(circle.getAttribute("cx"));
                                 let y = parseFloat(circle.getAttribute("cy"));
@@ -82,7 +84,7 @@ class Map {
                     }
                 }
             }
-        }
+        }*/
         svg.appendChild(vertices);
         vertices.setAttribute("visibility", "hidden");
 
@@ -107,9 +109,7 @@ class Map {
                         circle.addEventListener('click', function () {
                             legalEdges.setAttribute("visibility", "hidden");
                             ws.send(`build road ${edge[0]} ${edge[1]} ${edge[2]} ${color}`);
-                            //var road = createRoad(edge[0], edge[1], edge[2], "white");
-                            //roads.appendChild(road);
-                            
+
                             // add new legal edges
                             for (let i = 0; i < edges.children.length; i++) {
                                 let circle = edges.children[i];
@@ -134,7 +134,6 @@ class Map {
         center(svg);
     }
     highlightTokens(number) {
-        console.log("hi")
         for (let tile of svg.getElementsByClassName("tile")) {
             if (tile.id.startsWith("Desert")) {
                 continue;
@@ -152,20 +151,39 @@ class Map {
             }
         }
     }
-    vertexToStandard(x, y) { 
+    vertexToStandard(x, y) {
         let row = Math.floor((y - this.topMargin) / (this.circumradius * 2 - (this.circumradius * 2 - this.sideLength) / 2));
 
         if (row < 2) {
-            var col = Math.floor((x - this.inradius  * ((this.terrainMap[row].length / 2) - row)) / this.inradius);
+            var col = Math.floor((x - this.inradius * ((this.terrainMap[row].length / 2) - row)) / this.inradius);
         }
         else if (row > 3) {
-            var col = Math.floor((x + this.inradius * ((this.terrainMap[row].length / 2) - row)) / this.inradius);
+            var col = Math.floor((x + this.inradius * (this.terrainMap[row].length - row)) / this.inradius);
         }
         else {
             var col = x / this.inradius;
         }
 
         return { row, col };
+    }
+    standardToVertex(row, col) {
+        if (row <= 2) {
+            var y = row * ((this.circumradius * 2 - this.sideLength) / 2 + this.sideLength) + this.topMargin + ((1 - col % 2) * ((this.circumradius * 2 - this.sideLength) / 2));
+        }
+        else {
+            var y = row * ((this.circumradius * 2 - this.sideLength) / 2 + this.sideLength) + this.topMargin + ((col % 2) * ((this.circumradius * 2 - this.sideLength) / 2));
+        }
+        if (row < 2) {
+            var x = col * this.inradius + this.inradius * (5 - this.terrainMap[row].length) + this.leftMargin;
+        }
+        else if (row > 3) {
+            var x = col * this.inradius + this.inradius * (5 - this.terrainMap[row - 1].length) + this.leftMargin;
+        }
+        else {
+            var x = col * this.inradius;
+        }
+
+        return { x, y };
     }
 }
 function createCircle(x, y) {
@@ -335,45 +353,60 @@ function endTurn() {
     document.getElementById('bottomBar').style.visibility = 'hidden';
 }
 
-function joinServer(){
+function joinServer() {
     ws = new WebSocket('ws://localhost:8080');
-    ws.onopen = function() {
+    ws.onopen = function () {
         ws.send(`add ${name} ${color}`);
         ws.send('get map');
     }
-    ws.onmessage = function(event) {
+    ws.onmessage = function (event) {
         console.log(event.data);
 
         const args = String(event.data).split(' ');
-        
+
         if (args[0] === 'players') {
             const players = JSON.parse(args[1]);
             update(players);
         }
         else if (args[0] === 'build') {
+            const vertex = map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
             if (args[1] === 'settlement' || args[1] === 'city') {
-                var building = createBuilding(parseFloat(args[2]), parseFloat(args[3]), args[4], args[1]);
+                var building = createBuilding(vertex.x, vertex.y, args[4], args[1]);
                 document.getElementById('buildings').appendChild(building);
             }
             if (args[1] === 'road') {
-                var road = createRoad(parseFloat(args[2]), parseFloat(args[3]), parseFloat(args[4]), args[5]);
+                var road = createRoad(vertex.x, vertex.y, parseFloat(args[4]), args[5]);
                 document.getElementById('roads').appendChild(road);
             }
         }
         else if (args[0] === 'map') {
             const maps = JSON.parse(args[1]);
             map = new Map(svg, maps.terrainMap, maps.numberMap);
-
-            console.log(map.vertexToStandard(40, 10.566)); // 0, 2
-            console.log(map.vertexToStandard(50, 39.434)); // 2, 5
-            console.log(map.vertexToStandard(20, 10.566)); // 0, 0
-            console.log(map.vertexToStandard(70, 62.528)); // 3, 7
         }
         else if (args[0] === 'start') {
             document.getElementById('bottomBar').style.visibility = 'visible';
         }
         else if (args[0] === 'roll') {
             map.highlightTokens(parseInt(args[1]));
+        }
+        else if (args[0] === 'vertices') {
+            const legalVertices = JSON.parse(args[1]);
+            let vertices = svg.getElementById('vertices');
+            vertices.innerHTML = '';
+            for (let i = 0; i < legalVertices.length; i++) {
+                for (let j = 0; j < legalVertices[i].length; j++) {
+                    if (legalVertices[i][j]) {
+                        const vertex = map.standardToVertex(i, j);
+                        let circle = createCircle(parseInt(vertex.x), parseInt(vertex.y));
+                        circle.addEventListener('click', function () {
+                            let vertices = svg.getElementById('vertices');
+                            vertices.setAttribute("visibility", "hidden");
+                            ws.send(`build ${currentType} ${i} ${j} ${color}`);
+                        });
+                        vertices.appendChild(circle);
+                    }
+                }
+            }
         }
     }
 }
