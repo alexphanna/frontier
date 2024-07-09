@@ -8,6 +8,8 @@
 
 ul li {
     margin-left: 10px;
+    list-style-type: none;
+    color: #e0e0e0;
 }
 
 html, body {
