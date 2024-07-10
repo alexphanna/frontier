@@ -14,7 +14,7 @@ ul li {
 
 html, body {
     overflow: hidden;
-    background-color: #202080;
+    background-color: #0040c0;
     width: 100vw;
     height: 100vh;
     display: flex;
@@ -37,6 +37,8 @@ text {
 }
 div#bottomBar, div#leftBar, div#rightBar {
     background-color: #20202080;
+    backdrop-filter: blur( 4px );
+    -webkit-backdrop-filter: blur( 4px );
     position: fixed;
     z-index: 1;
     padding: 10px 20px;
@@ -75,23 +77,22 @@ input {
     border-radius: 20px;
     font-weight: bold;
     margin: 8px 4px;
-    box-shadow: 0 0px 10px rgb(0 0 0 / 0.2);
 }
 
 button {
     cursor: pointer;
-    background-color: #40404080;
+    background-color: #404040C0;
     color: white;
 }
 
 button:hover {
-    background-color: #808080;
+    background-color: #808080C0;
 }
 
 button:active {
-    background-color: #c0c0c0;
+    background-color: #C0C0C0C0;
 }
 
 button:disabled {
-    background-color: #202020;
+    background-color: #404040C0;
 }

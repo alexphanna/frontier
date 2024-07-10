@@ -205,10 +205,10 @@ function createTile(x, y, width, terrain, number) {
             hexagon.setAttribute("fill", "#800000");
             break;
         case "Pasture":
-            hexagon.setAttribute("fill", "#00C000");
+            hexagon.setAttribute("fill", "#008000");
             break;
         case "Mountains":
-            hexagon.setAttribute("fill", "#808080");
+            hexagon.setAttribute("fill", "#404040");
             break;
         case "Fields":
             hexagon.setAttribute("fill", "#C0C000");
@@ -217,7 +217,7 @@ function createTile(x, y, width, terrain, number) {
             hexagon.setAttribute("fill", "#004000");
             break;
         case "Desert":
-            hexagon.setAttribute("fill", "#ffd080");
+            hexagon.setAttribute("fill", "#c08040");
             break;
     }
     hexagon.setAttribute("stroke", "black");

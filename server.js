@@ -118,14 +118,6 @@ let clients = new Set();
 let map = generateMap();
 let turn = 0;
 
-// vertices
-/*  x  x [0, 0, 0, 0, 0, 0, 0] x  x
- *  x [0, 0, 0, 0, 0, 0, 0, 0, 0] x
- * [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
- * [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
- *  x [0, 0, 0, 0, 0, 0, 0, 0, 0] x
- *  x  x [0, 0, 0, 0, 0, 0, 0] x  x
- */
 let settlementVertices = [];
 let cityVertices = [];
 let settlements = [];
@@ -146,25 +138,6 @@ for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
     cities.unshift(Array.from(temp2));
     cities.push(Array.from(temp2));
 }
-
-// edges
-/* 0:  [0, 0, 0, 0, 0, 0]
- * 1:  [0, 0, 0, 0]
- * 2:  [0, 0, 0, 0, 0, 0, 0, 0]
- * 3:  [0, 0, 0, 0, 0]
- * 4:  [0, 0, 0, r, r, 0, 0, 0, 0, 0]
- * 5:  [0, 0, X, 0, 0, 0]
- * 6:  [0, 0, 0, r, r, 0, 0, 0, 0, 0]
- * 7:  [0, 0, 0, 0, 0]
- * 8:  [0, 0, 0, 0, 0, 0, 0, 0]
- * 9:  [0, 0, 0, 0]
-/* 10: [0, 0, 0, 0, 0, 0]
- */
-
-/* NaN = no road
- * 0 = player 0... able to build
- * player.size = road
- */
 
 let edges = [];
 for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
@@ -304,32 +277,33 @@ wss.on('connection', (ws) => {
                 }
             }
             else {
+                if (turn == players.size * 2) {
+                    // Fix settlement vertices
+                }
                 // roll dice
                 Array.from(clients)[turn % players.size].send('start');
                 const roll = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
                 broadcast('roll ' + roll);
 
-                // Distribute resources
+                // Simplified resource distribution
+                const playersArray = Array.from(players); // Convert players to array once
+                
+                function updateResources(position, i, j, multiplier) {
+                    if (!isNaN(position)) {
+                        const player = playersArray[position];
+                        player.resources[resources[map.terrainMap[i][j]]] += 1 * multiplier;
+                    }
+                }
+                
                 for (let i = 0; i < map.terrainMap.length; i++) {
                     for (let j = 0; j < map.terrainMap[i].length; j++) {
                         if (map.numberMap[i][j] === roll) {
                             for (let k = -1; k <= 1; k++) {
-                                if (!isNaN(settlements[i][j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1)])) {
-                                    const player = Array.from(players)[settlements[i][j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1)]];
-                                    player.resources[resources[map.terrainMap[i][j]]]++;
-                                }
-                                if (!isNaN(settlements[i + 1][j * 2 + k + 1 + (i > map.terrainMap.length / 2 ? 0 : 1)])) {
-                                    const player = Array.from(players)[settlements[i + 1][j * 2 + k + 1 + (i > map.terrainMap.length / 2 ? 0 : 1)]];
-                                    player.resources[resources[map.terrainMap[i][j]]]++;
-                                }
-                                if (!isNaN(cities[i][j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1)])) {
-                                    const player = Array.from(players)[cities[i][j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1)]];
-                                    player.resources[resources[map.terrainMap[i][j]]] += 2;
-                                }
-                                if (!isNaN(cities[i + 1][j * 2 + k + 1 + (i > map.terrainMap.length / 2 ? 0 : 1)])) {
-                                    const player = Array.from(players)[cities[i + 1][j * 2 + k + 1 + (i > map.terrainMap.length / 2 ? 0 : 1)]];
-                                    player.resources[resources[map.terrainMap[i][j]]] += 2;
-                                }
+                                const baseIndex = j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1);
+                                updateResources(settlements[i][baseIndex],i , j, 1);
+                                updateResources(settlements[i + 1][baseIndex + (i >= map.terrainMap.length / 2 ? -1 : 1)], i, j, 1);
+                                updateResources(cities[i][baseIndex], i, j, 2);
+                                updateResources(cities[i + 1][baseIndex + (i >= map.terrainMap.length / 2 ? -1 : 1)], i, j, 2);
                             }
                         }
                     }
@@ -339,28 +313,6 @@ wss.on('connection', (ws) => {
             }
         }
     });
-
-    /* x  x [0, 0, 0, 0, 0, 0, 0] x  x
-    *  x [0, X, X, X, 0, 0, 0, 0, 0] x
-    * [0, 0, X, X, X, 0, 0, 0, 0, 0, 0]
-    * [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    *  x [0, 0, 0, 0, 0, 0, 0, 0, 0] x
-    *  x  x [0, 0, 0, 0, 0, 0, 0] x  x
-    */
-
-    /*                  0, 1, 2, 3, 4, 5, 6
-     *  round(x / 3)    0, 0, 1, 1, 1, 2, 2
-     *
-     *  floor(x / 3)    0, 0, 0, 1, 1, 1, 2
-     *  ceil(x / 3)     0, 1, 1, 1, 2, 2, 2
-     */
-
-    /* [1, 0, 0]
-     * [0, 0, 0, 0]
-     * [0, 0, 0, 0, 0]
-     * [0, 0, 0, 0]
-     * [0, 0, 0]
-     */
 
     ws.on('close', () => {
         console.log('disconnected');
