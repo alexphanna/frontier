@@ -29,6 +29,13 @@ class Map {
         roads.setAttribute("id", "roads");
         svg.appendChild(roads);
 
+        // edge = { x, y, θ }
+        this.edges = [];
+        let edges = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        edges.setAttribute("id", "edges");
+        svg.appendChild(edges);
+        edges.setAttribute("visibility", "hidden");
+
         let buildings = document.createElementNS("http://www.w3.org/2000/svg", "g");
         buildings.setAttribute("id", "buildings");
         svg.appendChild(buildings);
@@ -42,27 +49,18 @@ class Map {
 
         // vertex = { x, y }
         this.settlementVertices = [];
-        ws.send('get vertices settlement');
         let settlementVertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
         settlementVertices.setAttribute("id", "settlementVertices");
         svg.appendChild(settlementVertices);
         settlementVertices.setAttribute("visibility", "hidden");
 
         this.cityVertices = [];
-        ws.send('get vertices city');
         let cityVertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
         cityVertices.setAttribute("id", "cityVertices");
         svg.appendChild(cityVertices);
         cityVertices.setAttribute("visibility", "hidden");
 
-        // edge = { x, y, θ }
-        this.edges = [];
-        ws.send('get edges');
-        let edges = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        edges.setAttribute("id", "edges");
-        svg.appendChild(edges);
-        edges.setAttribute("visibility", "hidden");
-
+        ws.send('get points');
         center(svg);
     }
     highlightTokens(number) {
@@ -190,8 +188,8 @@ class Building {
         return shape;
     }
     static shapeToPoint(shape, type) {
-        let x = parseFloat(shape.split(" ")[0].split(",")[0]) + Building.widths[type];
-        let y = parseFloat(shape.split(" ")[0].split(",")[1]) + Building.heights[type];
+        let x = parseFloat(String(shape).split(" ")[0].split(",")[0]) + Building.widths[type];
+        let y = parseFloat(String(shape).split(" ")[0].split(",")[1]) + Building.heights[type];
         return { x, y };
     }
 }
@@ -357,7 +355,7 @@ function joinServer() {
             updateUI(players);
         }
         else if (args[0] === 'build') {
-            if (args[1] === 'settlement' || args[1] === 'city') {
+            if (args[1] === 'settlement') {
                 const vertex = map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
                 const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
                 document.getElementById('buildings').appendChild(building);
@@ -365,12 +363,12 @@ function joinServer() {
             else if (args[1] == 'city') {
                 const vertex = map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
                 const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
-                let buildings = svg.getElementById('buildings');
-                for (let i = 0; i < buildings.children.length; i++) {
-                    const point = vertexToStandard(Building.shapeToPoint(buildings.children[i].getAttribute("points")));
-                    console.log(point.x, parseInt(args[2]), point.y, parseInt(args[3]));
-                    if (Math.abs(point.x - parseInt(args[2])) < 1 && Math.abs(point.y - parseInt(args[3])) < 1 && buildings.children[i].classList.contains('settlement')) {
-                        buildings.removeChild(buildings.children[i]);
+                let settlements = document.getElementById('buildings').getElementsByClassName('settlement');
+                for (let i = 0; i < settlements.length; i++) {
+                    const temp = Building.shapeToPoint(settlements[i].getAttribute('points'), 'settlement');
+                    const point = map.vertexToStandard(temp.x, temp.y);
+                    if (point.row == parseInt(args[2]) && point.col == parseInt(args[3])) {
+                        document.getElementById("buildings").removeChild(settlements[i]);
                         break;
                     }
                 }
@@ -425,7 +423,6 @@ function joinServer() {
                     if (legalEdges[i][j]) {
                         const edge = map.standardToEdge(i, j);
                         const temp = map.edgeToStandard(edge.x, edge.y);
-                        console.log(i, temp.row, j, temp.col)
 
                         let road = Building.createRoad(edge.x, edge.y, edge.angle, "transparent", "#ffffffc0");
                         road.addEventListener('click', function () {

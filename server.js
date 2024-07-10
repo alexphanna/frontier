@@ -1,8 +1,7 @@
 class Player {
-    constructor(name, color, ws) {
+    constructor(name, color) {
         this.name = name;
         this.color = color;
-        this.ws = ws;
         this.points = 0;
         this.buildings = {
             settlements: 5,
@@ -19,16 +18,25 @@ class Player {
     }
 }
 
+let terrainCounts = {
+    "Hills": 3,
+    "Forest": 4,
+    "Mountains": 3,
+    "Fields": 4,
+    "Pasture": 4,
+    "Desert": 1
+}
+const terrains = Object.keys(terrainCounts);
+
+let resources = {
+    "Hills": "brick",
+    "Forest": "lumber",
+    "Mountains": "ore",
+    "Fields": "grain",
+    "Pasture": "wool",
+}
+
 function generateMap() {
-    let terrainCounts = {
-        "Hills": 3,
-        "Forest": 4,
-        "Mountains": 3,
-        "Fields": 4,
-        "Pasture": 4,
-        "Desert": 1
-    }
-    const terrains = Object.keys(terrainCounts);
     var terrainDistr = terrains.flatMap(terrain => Array(terrainCounts[terrain]).fill(terrain));
     var numberDistr = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
     shuffle(terrainDistr);
@@ -67,19 +75,19 @@ function shuffle(array) {
 }
 
 function broadcast(message) {
-    for (const player of players) {
-        player.ws.send(message);
+    for (const client of clients) {
+        client.send(message);
     }
 }
 
-function broadcastVertices() {
+function broadcastPoints() {
     broadcast('vertices settlement ' + JSON.stringify(settlementVertices));
     for (let i = 0; i < players.size; i++) {
-        const vertices = [];
+        const playerVertices = [];
         for (let j = 0; j < cityVertices.length; j++) {
-            vertices.push([]);
+            playerVertices.push([]);
             for (let k = 0; k < cityVertices[j].length; k++) {
-                vertices[j].push(cityVertices[j][k] == i);
+                playerVertices[j].push(cityVertices[j][k] == i);
             }
         }   
         const playerEdges = [];
@@ -89,12 +97,15 @@ function broadcastVertices() {
                 playerEdges[j].push(edges[j][k] == i);
             }
         }
-        Array.from(players)[i].ws.send('vertices city ' + JSON.stringify(vertices));
-        Array.from(players)[i].ws.send('edges ' + JSON.stringify(playerEdges));
+        Array.from(clients)[i].send('vertices city ' + JSON.stringify(playerVertices));
+        Array.from(clients)[i].send('edges ' + JSON.stringify(playerEdges));
     }
 }
 
 function addEdge(row, col) {
+    if (row < 0 || row >= edges.length || col < 0 || col >= edges[row].length) {
+        return;
+    }
     if (isNaN(edges[row][col])) {
         edges[row][col] = turn % players.size;
     }
@@ -103,6 +114,7 @@ function addEdge(row, col) {
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 let players = new Set();
+let clients = new Set();
 let map = generateMap();
 let turn = 0;
 
@@ -116,17 +128,23 @@ let turn = 0;
  */
 let settlementVertices = [];
 let cityVertices = [];
+let settlements = [];
+let cities = [];
 for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
     let temp1 = [];
     let temp2 = [];
     for (let j = 0; j < map.terrainMap[i].length * 2 + 1; j++) {
-        temp1.push(true);
+        temp1.push(1);
         temp2.push(NaN);
     }
     settlementVertices.unshift(Array.from(temp1));
     settlementVertices.push(Array.from(temp1));
     cityVertices.unshift(Array.from(temp2));
     cityVertices.push(Array.from(temp2));
+    settlements.unshift(Array.from(temp2));
+    settlements.push(Array.from(temp2));
+    cities.unshift(Array.from(temp2));
+    cities.push(Array.from(temp2));
 }
 
 // edges
@@ -166,7 +184,6 @@ for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
     edges.unshift(Array.from(temp2));
 }
 
-console.log(edges);
 
 wss.on('connection', (ws) => {
     console.log('connected');
@@ -177,7 +194,8 @@ wss.on('connection', (ws) => {
         const args = String(message).split(' ');
 
         if (args[0] === 'add') {
-            players.add(new Player(args[1], args[2], ws));
+            players.add(new Player(args[1], args[2]));
+            clients.add(ws);
             broadcast('players ' + JSON.stringify(Array.from(players)));
             if (players.size == 1) {
                 ws.send('start');
@@ -191,35 +209,36 @@ wss.on('connection', (ws) => {
                 broadcast(String(message));
                 player.points++;
                 player.buildings["settlements"]--;
-                settlementVertices[row][col] = false;
+                settlementVertices[row][col] = 0;
+                settlements[row][col] = turn % players.size;
                 cityVertices[row][col] = turn % players.size;
                 for (let i = (col == 0 ? 0 : -1); i <= (col == settlementVertices[row].length - 1 ? 0 : 1); i++) {
-                    settlementVertices[row][col + i] = false;
-                    edges[row * 2][col + (i > 0 ? 0 : -1)] = turn % players.size;
+                    settlementVertices[row][col + i] = 0;
+                    addEdge(row * 2, col + (i > 0 ? 0 : -1));
                 }
 
                 if (((row <= 2 && col % 2) || (row >= 3 && !(col % 2))) && row > 0) {
                     if (settlementVertices[row].length != settlementVertices[row - 1].length) {
-                        settlementVertices[row - 1][col + (row >= Math.floor(settlementVertices.length / 2) ? 1 : -1)] = false;
+                        settlementVertices[row - 1][col + (row >= Math.floor(settlementVertices.length / 2) ? 1 : -1)] = 0;
                     }
                     else {
-                        settlementVertices[row - 1][col] = false;
+                        settlementVertices[row - 1][col] = 0;
                     }
                 }
                 else if (row < settlementVertices.length - 1) {
                     if (settlementVertices[row].length != settlementVertices[row + 1].length) {
-                        settlementVertices[row + 1][col + (row >= Math.floor(settlementVertices.length / 2) ? -1 : 1)] = false; 
+                        settlementVertices[row + 1][col + (row >= Math.floor(settlementVertices.length / 2) ? -1 : 1)] = 0; 
                     }
                     else {
-                        settlementVertices[row + 1][col] = false;
+                        settlementVertices[row + 1][col] = 0;
                     }
                 }
 
                 if (row <= 2 && row > 0) {
-                    edges[row * 2 + (col % 2 == 1 ? -1 : 1)][Math.floor(col / 2)] = turn % players.size;
+                    addEdge(row * 2 + (col % 2 == 1 ? -1 : 1), Math.floor(col / 2));
                 }
                 else if (row >= 3 && row < settlementVertices.length - 1) {
-                    edges[row * 2 + (col % 2 == 1 ? 1 : -1)][Math.floor(col / 2)] = turn % players.size;
+                    addEdge(row * 2 + (col % 2 == 1 ? 1 : -1), Math.floor(col / 2));
                 }
             }
             else if (args[1] === 'city' && cityVertices[row][col] === turn % players.size && player.buildings["cities"] > 0) {
@@ -227,6 +246,8 @@ wss.on('connection', (ws) => {
                 player.points++;
                 player.buildings["cities"]--;
                 player.buildings["settlements"]++;
+                cities[row][col] = turn % players.size;
+                settlements[row][col] = NaN;
                 cityVertices[row][col] = NaN;
             } 
             else if (args[1] === 'road' && edges[row][col] == turn % players.size && player.buildings["roads"] > 0) {
@@ -259,55 +280,96 @@ wss.on('connection', (ws) => {
                     }
                 }
                 edges[row][col] = players.size;
-                console.log(edges);
             }
                 
-            broadcastVertices();
+            broadcastPoints();
             broadcast('players ' + JSON.stringify(Array.from(players)));
         }
         else if (args[0] === 'get') {
             if (args[1] === 'map') {
                 ws.send('map ' + JSON.stringify(map));
             }
-            else if (args[1] === 'vertices') {
-                if (args[2] === "settlement") {
-                    ws.send('vertices settlement ' + JSON.stringify(settlementVertices));
-                }
-                else if (args[2] === "city") {
-                    ws.send('vertices city ' + JSON.stringify(cityVertices));
-                }
-            }
-            else if (args[1] === 'edges') {
-                ws.send('edges ' + JSON.stringify(edges));
+            else if (args[1] === 'points') {
+                broadcastPoints();
             }
         }
         else if (args[0] === 'end') {
             turn++;
             if (turn < players.size * 2) {
                 if (turn < players.size) {
-                    Array.from(players)[turn].ws.send('start');
+                    Array.from(clients)[turn].send('start');
                 }
                 else {
-                    Array.from(players)[players.size - 1 - (turn % players.size)].ws.send('start');
+                    Array.from(clients)[players.size - 1 - (turn % players.size)].send('start');
                 }
             }
             else {
                 // roll dice
-                Array.from(players)[turn % players.size].ws.send('start');
-                broadcast('roll ' + Math.floor(Math.random() * 6 + 1));
+                Array.from(clients)[turn % players.size].send('start');
+                const roll = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
+                broadcast('roll ' + roll);
 
-                // distribute resources
+                // Distribute resources
+                for (let i = 0; i < map.terrainMap.length; i++) {
+                    for (let j = 0; j < map.terrainMap[i].length; j++) {
+                        if (map.numberMap[i][j] === roll) {
+                            for (let k = -1; k <= 1; k++) {
+                                if (!isNaN(settlements[i][j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1)])) {
+                                    const player = Array.from(players)[settlements[i][j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1)]];
+                                    player.resources[resources[map.terrainMap[i][j]]]++;
+                                }
+                                if (!isNaN(settlements[i + 1][j * 2 + k + 1 + (i > map.terrainMap.length / 2 ? 0 : 1)])) {
+                                    const player = Array.from(players)[settlements[i + 1][j * 2 + k + 1 + (i > map.terrainMap.length / 2 ? 0 : 1)]];
+                                    player.resources[resources[map.terrainMap[i][j]]]++;
+                                }
+                                if (!isNaN(cities[i][j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1)])) {
+                                    const player = Array.from(players)[cities[i][j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1)]];
+                                    player.resources[resources[map.terrainMap[i][j]]] += 2;
+                                }
+                                if (!isNaN(cities[i + 1][j * 2 + k + 1 + (i > map.terrainMap.length / 2 ? 0 : 1)])) {
+                                    const player = Array.from(players)[cities[i + 1][j * 2 + k + 1 + (i > map.terrainMap.length / 2 ? 0 : 1)]];
+                                    player.resources[resources[map.terrainMap[i][j]]] += 2;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                broadcast('players ' + JSON.stringify(Array.from(players)));
             }
         }
     });
 
+    /* x  x [0, 0, 0, 0, 0, 0, 0] x  x
+    *  x [0, X, X, X, 0, 0, 0, 0, 0] x
+    * [0, 0, X, X, X, 0, 0, 0, 0, 0, 0]
+    * [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    *  x [0, 0, 0, 0, 0, 0, 0, 0, 0] x
+    *  x  x [0, 0, 0, 0, 0, 0, 0] x  x
+    */
+
+    /*                  0, 1, 2, 3, 4, 5, 6
+     *  round(x / 3)    0, 0, 1, 1, 1, 2, 2
+     *
+     *  floor(x / 3)    0, 0, 0, 1, 1, 1, 2
+     *  ceil(x / 3)     0, 1, 1, 1, 2, 2, 2
+     */
+
+    /* [1, 0, 0]
+     * [0, 0, 0, 0]
+     * [0, 0, 0, 0, 0]
+     * [0, 0, 0, 0]
+     * [0, 0, 0]
+     */
+
     ws.on('close', () => {
         console.log('disconnected');
-        players.forEach((player) => {
-            if (player.ws === ws) {
-                players.delete(player);
+        for (let i = 0; i < players.size; i++) {
+            if (Array.from(clients)[i] === ws) {
+                players.delete(Array.from(players)[i]);
+                clients.delete(ws);
             }
-        });
+        }
         broadcast('players ' + JSON.stringify(Array.from(players)));
     });
 });
