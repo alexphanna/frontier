@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <div id="menu">
+    <div id="menu" class="interface">
         <h1>Catan</h1>
         <br>
         <h3 style="color: #e0e0e0;">Name</h3>
@@ -18,7 +18,7 @@
         <br><br>
         <button onclick="join()">Join</button>
     </div>
-    <div id="lobby" style="visibility: hidden; display: table;">
+    <div id="lobby" class="interface" style="visibility: hidden; display: table;">
         <h1>Players</h1>
         <br>
         <div id="players" style="margin: 0px 10px;"></div>
@@ -26,15 +26,18 @@
         <button id="readyButton" onclick="ready()" style="position: absolute; bottom: 20px; right: 30px">Ready</button>
     </div>
     <div id="game" style="visibility: hidden;">
-        <svg id="map" width="700" height="700" viewBox="0 0 100 100" style="left: 0px; top: 0px"></svg>
-        <div id="bottomBar" style="visibility: hidden;"> <!-- aka turn bar -->
+        <svg id="map" width="700" height="700" viewBox="-10 -10 120 120" style="left: 0px; top: 0px"></svg>
+        <!--<div id="topBar" class="interface">
+            <h2>Your turn</h2>
+        </div>-->
+        <div id="bottomBar" class="interface" style="visibility: hidden;"> <!-- aka turn bar -->
             <button id="settlement" onclick="build('settlement')">Settlement</button>
             <button id="city" onclick="build('city')">City</button>
             <button id="road" onclick="build('road')">Road</button>
-            <button id="endTurn" onclick="endTurn()">End Turn</button>
+            <button id="endTurn" style="position: absolute; right: 10px;" onclick="endTurn()">Next Turn</button>
         </div>
-        <div id="leftBar"></div>
-        <div id="rightBar"></div>
+        <div id="leftBar" class="interface"></div>
+        <div id="rightBar" class="interface"></div>
     </div>
     <script src="script.js"></script>
 </body>

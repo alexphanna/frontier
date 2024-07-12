@@ -42,11 +42,7 @@ text {
     dominant-baseline: middle;
 }
 
-div#bottomBar, 
-div#leftBar, 
-div#rightBar, 
-div#menu,
-div#lobby {
+.interface {
     background-color: #20202080;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -56,14 +52,25 @@ div#lobby {
     padding: 10px 20px;
 }
 
+div#topBar,
 div#bottomBar {
-    bottom: 0;
     padding: 10px 20px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
+}
+
+div#topBar {
+    top: 0;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+
+div#bottomBar {
+    bottom: 0;
+    width: 100%;
+    /*border-top-left-radius: 20px;
+    border-top-right-radius: 20px;*/
 }
 
 div#leftBar,
