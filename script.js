@@ -331,18 +331,48 @@ function updateUI(players) {
             rightBar.appendChild(document.createElement('br'));
         }
     }
+}
 
+function updateLobby(players) {
+    let playersDiv = document.getElementById('players');
+    playersDiv.innerHTML = '';
+    for (let player of players) {
+        playerHeading = playersDiv.appendChild(document.createElement('h2'));
+        playerHeading.style.color = player.color;
+        playerHeading.textContent = `${player.name}`;
+        playersDiv.appendChild(playerHeading);
+    }
 }
 
 function endTurn() {
-    ws.send('end');
+    ws.send('end turn');
     document.getElementById('bottomBar').style.visibility = 'hidden';
 }
 
-function joinServer() {
-    ws = new WebSocket('ws://localhost:8080');
+function ready() {
+    ws.send('ready');
+    readyButton = document.getElementById('readyButton');
+    readyButton.textContent = 'Unready';
+    readyButton.setAttribute('onclick', 'unready()');
+}
+
+function unready() {
+    ws.send('unready');
+    readyButton = document.getElementById('readyButton');
+    readyButton.textContent = 'Ready';
+    readyButton.setAttribute('onclick', 'ready()');
+}
+
+function join() {
+    name = document.getElementById('name').value;
+    address = document.getElementById('address').value;
+
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("lobby").removeAttribute("style");
+
+    ws = new WebSocket(`ws://${address}`);
     ws.onopen = function () {
-        ws.send(`add ${name} ${color}`);
+        ws.send(`add ${name}`);
         ws.send('get map');
     }
     ws.onmessage = function (event) {
@@ -352,6 +382,7 @@ function joinServer() {
 
         if (args[0] === 'players') {
             const players = JSON.parse(args[1]);
+            updateLobby(players);
             updateUI(players);
         }
         else if (args[0] === 'build') {
@@ -385,7 +416,13 @@ function joinServer() {
             map = new Map(svg, maps.terrainMap, maps.numberMap);
         }
         else if (args[0] === 'start') {
-            document.getElementById('bottomBar').style.visibility = 'visible';
+            if (args[1] === 'game') {
+                document.getElementById('lobby').style.display = 'none';
+                document.getElementById('game').removeAttribute('style');
+            }
+            else if (args[1] === 'turn') {
+                document.getElementById('bottomBar').style.visibility = 'visible';
+            }
         }
         else if (args[0] === 'roll') {
             map.highlightTokens(parseInt(args[1]));
@@ -439,6 +476,9 @@ function joinServer() {
                     }
                 }
             }
+        }
+        else if (args[0] === 'color') {
+            color = args[1];
         }
     }
 }
@@ -494,7 +534,6 @@ let svg = document.getElementById('map');
 let currentType = "settlement";
 let map;
 
-const name = prompt("Enter your name:");
-const color = prompt("Enter your color:");
-
-joinServer();
+var name;
+var color;
+var address;

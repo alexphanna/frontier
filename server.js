@@ -115,6 +115,8 @@ const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 let players = new Set();
 let clients = new Set();
+let ready = new Set();
+let colors = ["red", "blue", "green", "yellow"];
 let map = generateMap();
 let turn = 0;
 
@@ -167,12 +169,20 @@ wss.on('connection', (ws) => {
         const args = String(message).split(' ');
 
         if (args[0] === 'add') {
-            players.add(new Player(args[1], args[2]));
+            ws.send('color ' + colors[players.size]);
+            players.add(new Player(args[1], colors[players.size]));
             clients.add(ws);
             broadcast('players ' + JSON.stringify(Array.from(players)));
-            if (players.size == 1) {
-                ws.send('start');
+        }
+        else if (args[0] === 'ready') {
+            ready.add(ws);
+            if (ready.size === players.size) {
+                broadcast('start game')
+                Array.from(clients)[0].send('start turn');
             }
+        }
+        else if (args[0] === 'unready') {
+            ready.delete(ws);
         }
         else if (args[0] === 'build') {
             let player = Array.from(players)[turn % players.size];
@@ -266,14 +276,14 @@ wss.on('connection', (ws) => {
                 broadcastPoints();
             }
         }
-        else if (args[0] === 'end') {
+        else if (args[0] === 'end' && args[1] === 'turn') {
             turn++;
             if (turn < players.size * 2) {
                 if (turn < players.size) {
-                    Array.from(clients)[turn].send('start');
+                    Array.from(clients)[turn].send('start turn');
                 }
                 else {
-                    Array.from(clients)[players.size - 1 - (turn % players.size)].send('start');
+                    Array.from(clients)[players.size - 1 - (turn % players.size)].send('start turn');
                 }
             }
             else {
