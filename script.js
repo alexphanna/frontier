@@ -272,16 +272,19 @@ function build(type) {
     let svg = document.getElementById('map');
     currentType = type;
     if (type == "settlement") {
-        let vertices = svg.getElementById('settlementVertices');
-        vertices.setAttribute("visibility", "visible");
+        svg.getElementById('settlementVertices').setAttribute("visibility", "visible");
+        svg.getElementById('cityVertices').setAttribute("visibility", "hidden");
+        svg.getElementById('edges').setAttribute("visibility", "hidden");
     }
     else if (type == "city") {
-        let vertices = svg.getElementById('cityVertices');
-        vertices.setAttribute("visibility", "visible");
+        svg.getElementById('cityVertices').setAttribute("visibility", "visible");
+        svg.getElementById('settlementVertices').setAttribute("visibility", "hidden");
+        svg.getElementById('edges').setAttribute("visibility", "hidden");
     }
     else {
-        let edges = svg.getElementById('edges');
-        edges.setAttribute("visibility", "visible");
+        svg.getElementById('edges').setAttribute("visibility", "visible");
+        svg.getElementById('cityVertices').setAttribute("visibility", "hidden");
+        svg.getElementById('settlementVertices').setAttribute("visibility", "hidden");
     }
 }
 

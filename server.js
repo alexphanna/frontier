@@ -3,6 +3,7 @@ class Player {
         this.name = name;
         this.color = color;
         this.points = 0;
+        this.prevVertex = null;
         this.buildings = {
             settlements: 5,
             cities: 4,
@@ -37,6 +38,21 @@ class Vertex {
 
         return edges;
     }
+    static adjacentVertices(row, col) {
+        let adjacentVertices = [];
+
+        const edges = Vertex.adjacentEdges(row, col);
+        for (let i = 0; i < edges.length; i++) {
+            const vertices = Edge.adjacentVertices(edges[i][0], edges[i][1]);
+            for (let j = 0; j < vertices.length; j++) {
+                if (vertices[j][0] != row || vertices[j][1] != col) {
+                    adjacentVertices.push(vertices[j]);
+                }
+            }
+        }
+        
+        return adjacentVertices;
+    }
 }
 class Edge {
     // always returns 2 vertices
@@ -50,21 +66,9 @@ class Edge {
         }
         else {
             // vertical row
-            if (row < 5) {
-                vertices.push([Math.floor(row / 2), col * 2]);
-                vertices.push([Math.ceil(row / 2), col * 2 + 1]);
-            }
-            else if (row == 5) {
-                vertices.push([Math.floor(row / 2), col * 2]);
-                vertices.push([Math.ceil(row / 2), col * 2]);
-            }
-            else if (row > 5) {
-                vertices.push([Math.floor(row / 2), col * 2 + 1]);
-                vertices.push([Math.ceil(row / 2), col * 2]);
-            }
+            vertices.push([Math.floor(row / 2), col * 2 + (row > 5 ? 1 : 0)]);
+            vertices.push([Math.ceil(row / 2), col * 2 + (row < 5 ? 1 : 0)]);
         }
-
-        console.log(vertices);
 
         return vertices;
     }
@@ -133,34 +137,50 @@ function broadcast(message) {
 }
 
 function broadcastPoints() {
-    if (turn < players.size * 2) {
-        broadcast('vertices settlement ' + JSON.stringify(settlementVertices));
-    }
-    for (let i = 0; i < players.size; i++) {
+    for (let i = 0; i < players.size; i++) {   
+        const playerArray = Array.from(players);
+        if (turn >= players.size && turn < players.size * 2 && playerArray[i].prevVertex != null) {
+            var playerEdges = [];
+            for (let j = 0; j < edges.length; j++) {
+                playerEdges.push([]);
+                for (let k = 0; k < edges[j].length; k++) {
+                    playerEdges[j].push(false);
+                }
+            }
+            let temp = Vertex.adjacentEdges(playerArray[i].prevVertex[0], playerArray[i].prevVertex[1]);
+            for (let j = 0; j < temp.length; j++) {
+                playerEdges[temp[j][0]][temp[j][1]] = true;
+            }
+        }
+        else {
+            var playerEdges = [];
+            for (let j = 0; j < edges.length; j++) {
+                playerEdges.push([]);
+                for (let k = 0; k < edges[j].length; k++) {
+                    playerEdges[j].push(edges[j][k] == i);
+                }
+            }
+        }
         const playerCityVertices = [];
         for (let j = 0; j < cityVertices.length; j++) {
             playerCityVertices.push([]);
             for (let k = 0; k < cityVertices[j].length; k++) {
                 playerCityVertices[j].push(cityVertices[j][k] == i);
             }
-        }   
-        const playerEdges = [];
-        for (let j = 0; j < edges.length; j++) {
-            playerEdges.push([]);
-            for (let k = 0; k < edges[j].length; k++) {
-                playerEdges[j].push(edges[j][k] == i);
-            }
         }
-        if (turn >= players.size * 2) {
-            const playerSettlementVertices = [];
-            for (let j = 0; j < settlementVertices.length; j++) {
-                playerSettlementVertices.push([]);
-                for (let k = 0; k < settlementVertices[j].length; k++) {
+        const playerSettlementVertices = [];
+        for (let j = 0; j < settlementVertices.length; j++) {
+            playerSettlementVertices.push([]);
+            for (let k = 0; k < settlementVertices[j].length; k++) {
+                if (turn < players.size * 2) {  
+                    playerSettlementVertices[j].push(isNaN(settlementVertices[j][k]));
+                }
+                else {
                     playerSettlementVertices[j].push(settlementVertices[j][k] == i);
                 }
             }
-            Array.from(clients)[i].send('vertices settlement ' + JSON.stringify(playerSettlementVertices));
         }
+        Array.from(clients)[i].send('vertices settlement ' + JSON.stringify(playerSettlementVertices));
         Array.from(clients)[i].send('vertices city ' + JSON.stringify(playerCityVertices));
         Array.from(clients)[i].send('edges ' + JSON.stringify(playerEdges));
     }
@@ -180,20 +200,18 @@ let cityVertices = [];
 let settlements = [];
 let cities = [];
 for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
-    let temp1 = [];
-    let temp2 = [];
+    let temp = [];
     for (let j = 0; j < map.terrainMap[i].length * 2 + 1; j++) {
-        temp1.push(1);
-        temp2.push(NaN);
+        temp.push(NaN);
     }
-    settlementVertices.unshift(Array.from(temp1));
-    settlementVertices.push(Array.from(temp1));
-    cityVertices.unshift(Array.from(temp2));
-    cityVertices.push(Array.from(temp2));
-    settlements.unshift(Array.from(temp2));
-    settlements.push(Array.from(temp2));
-    cities.unshift(Array.from(temp2));
-    cities.push(Array.from(temp2));
+    settlementVertices.unshift(Array.from(temp));
+    settlementVertices.push(Array.from(temp));
+    cityVertices.unshift(Array.from(temp));
+    cityVertices.push(Array.from(temp));
+    settlements.unshift(Array.from(temp));
+    settlements.push(Array.from(temp));
+    cities.unshift(Array.from(temp));
+    cities.push(Array.from(temp));
 }
 
 let edges = [];
@@ -240,45 +258,53 @@ wss.on('connection', (ws) => {
             ready.delete(ws);
         }
         else if (args[0] === 'build') {
-            let player = Array.from(players)[turn % players.size];
+            if (turn >= players.size && turn < players.size * 2) {
+                var player = Array.from(players)[players.size - 1 - (turn % players.size)];
+            }
+            else {
+                var player = Array.from(players)[turn % players.size];
+            }
             const row = parseInt(args[2]);
             const col = parseInt(args[3]);
-            if (args[1] === 'settlement' && settlementVertices[row][col] && player.buildings["settlements"] > 0) {
-                if (turn < players.size * 2) {
+            if (args[1] === 'settlement' && player.buildings["settlements"] > 0) {
+                if (turn < players.size * 2 && isNaN(settlementVertices[row][col])) {
                     broadcast(String(message));
                     player.points++;
                     player.buildings["settlements"]--;
-                    settlementVertices[row][col] = 0;
+                    player.prevVertex = [row, col];
+                    settlementVertices[row][col] = players.size;
                     settlements[row][col] = turn % players.size;
                     cityVertices[row][col] = turn % players.size;
-                    for (let i = (col == 0 ? 0 : -1); i <= (col == settlementVertices[row].length - 1 ? 0 : 1); i++) {
-                        settlementVertices[row][col + i] = 0;
-                        //addEdge(row * 2, col + (i > 0 ? 0 : -1));
-                    }
-
-                    if (((row <= 2 && col % 2) || (row >= 3 && !(col % 2))) && row > 0) {
-                        if (settlementVertices[row].length != settlementVertices[row - 1].length) {
-                            settlementVertices[row - 1][col + (row >= Math.floor(settlementVertices.length / 2) ? 1 : -1)] = 0;
-                        }
-                        else {
-                            settlementVertices[row - 1][col] = 0;
-                        }
-                    }
-                    else if (row < settlementVertices.length - 1) {
-                        if (settlementVertices[row].length != settlementVertices[row + 1].length) {
-                            settlementVertices[row + 1][col + (row >= Math.floor(settlementVertices.length / 2) ? -1 : 1)] = 0; 
-                        }
-                        else {
-                            settlementVertices[row + 1][col] = 0;
-                        }
-                    }
                     
                     let adjacentEdges = Vertex.adjacentEdges(row, col);
                     for (let j = 0; j < adjacentEdges.length; j++) {
                         const edge = adjacentEdges[j];
                         if (isNaN(edges[edge[0]][edge[1]])) {
-                            edges[edge[0]][edge[1]] = turn % players.size;
+                            if (turn >= players.size) {
+                                edges[edge[0]][edge[1]] = players.size - 1 - (turn % players.size)
+                            }
+                            else {
+                                edges[edge[0]][edge[1]] = turn % players.size;
+                            }
                         }
+                    }
+                    
+                    const adjacentVertices = Vertex.adjacentVertices(row, col);
+                    for (let i = 0; i < adjacentVertices.length; i++) {
+                        settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size + 1;
+                    }
+                }
+                else if (turn >= players.size * 2 && settlementVertices[row][col] == turn % players.size) {
+                    broadcast(String(message));
+                    player.points++;
+                    player.buildings["settlements"]--;
+                    settlementVertices[row][col] = players.size;
+                    settlements[row][col] = turn % players.size;
+                    cityVertices[row][col] = turn % players.size;
+                    
+                    const adjacentVertices = Vertex.adjacentVertices(row, col);
+                    for (let i = 0; i < adjacentVertices.length; i++) {
+                        settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size + 1;
                     }
                 }
             }
@@ -291,34 +317,45 @@ wss.on('connection', (ws) => {
                 settlements[row][col] = NaN;
                 cityVertices[row][col] = NaN;
             } 
-            else if (args[1] === 'road' && edges[row][col] == turn % players.size && player.buildings["roads"] > 0) {
+            else if (args[1] === 'road' && player.buildings["roads"] > 0) {
+                // Re-add server-side validation
                 broadcast(String(message));
                 player.buildings["roads"]--;
                 edges[row][col] = players.size;
 
-                let adjacentVertices = Edge.adjacentVertices(row, col);
-                let available = true;
+                const adjacentVertices = Edge.adjacentVertices(row, col);
                 for (let i = 0; i < adjacentVertices.length; i++) {
-                    const vertex = adjacentVertices[i];
-                    let adjacentEdges = Vertex.adjacentEdges(vertex[0], vertex[1]);
+                    const adjacentEdges = Vertex.adjacentEdges(adjacentVertices[i][0], adjacentVertices[i][1]);
                     for (let j = 0; j < adjacentEdges.length; j++) {
-                        const edge = adjacentEdges[j];
-                        if (isNaN(edges[edge[0]][edge[1]])) {
-                            edges[edge[0]][edge[1]] = turn % players.size;
-                        }
-                        let tempVertices = Edge.adjacentVertices(edge[0], edge[1]);
-                        for (let k = 0; k < tempVertices.length; k++) {
-                            const tempVertex = tempVertices[k];
-                            if (tempVertices != vertex && !isNaN(settlementVertices[tempVertex[0]][tempVertex[1]])) {
-                                available = false;
+                        if (isNaN(edges[adjacentEdges[j][0]][adjacentEdges[j][1]])) {
+                            if (turn >= players.size && turn < players.size * 2) {
+                                edges[adjacentEdges[j][0]][adjacentEdges[j][1]] = players.size - 1 - (turn % players.size)
+                            }
+                            else {
+                                edges[adjacentEdges[j][0]][adjacentEdges[j][1]] = turn % players.size;
                             }
                         }
                     }
-
+                    if (settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] == players.size) {
+                        continue;
+                    }
+                    const vertices = Vertex.adjacentVertices(adjacentVertices[i][0], adjacentVertices[i][1]);
+                    let available = true;
+                    for (let j = 0; j < vertices.length; j++) {
+                        if (settlementVertices[vertices[j][0]][vertices[j][1]] == players.size) {
+                            available = false;
+                        }
+                    }
                     if (available) {
-                        settlementVertices[vertex[0]][vertex[1]] = turn % players.size;
+                        if (turn >= players.size && turn < players.size * 2) {
+                            settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size - 1 - (turn % players.size)
+                        }
+                        else {
+                            settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = turn % players.size;
+                        }
                     }
                 }
+                
             }
                 
             broadcastPoints();
@@ -342,16 +379,7 @@ wss.on('connection', (ws) => {
                     Array.from(clients)[players.size - 1 - (turn % players.size)].send('start turn');
                 }
             }
-            else {
-                // Erase all settlement vertices and switch to numbered system
-                if (turn == players.size * 2) {
-                    for (let i = 0; i < settlementVertices.length; i++) {
-                        for (let j = 0; j < settlementVertices[i].length; j++) {
-                            settlementVertices[i][j] = NaN;
-                        }
-                    }
-                    broadcastPoints();
-                }
+            if (turn >= players.size * 2) {
                 // roll dice
                 Array.from(clients)[turn % players.size].send('start turn');
                 const roll = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
@@ -382,6 +410,7 @@ wss.on('connection', (ws) => {
                 }
 
                 broadcast('players ' + JSON.stringify(Array.from(players)));
+                broadcastPoints();
             }
         }
     });
