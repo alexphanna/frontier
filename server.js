@@ -10,11 +10,11 @@ class Player {
             roads: 15
         }
         this.resources = {
-            brick: 0,
-            grain: 0,
-            lumber: 0,
+            brick: 10,
+            grain: 10,
+            lumber: 10,
             ore: 0,
-            wool: 0
+            wool: 10
         };
     }
 }
@@ -191,7 +191,7 @@ const wss = new WebSocket.Server({ port: 8080 });
 let players = new Set();
 let clients = new Set();
 let ready = new Set();
-let colors = ["red", "blue", "green", "yellow"];
+let colors = shuffle(["red", "orange", "yellow", "lime", "blue", "magenta"]);
 let map = generateMap();
 let turn = 0;
 
@@ -295,9 +295,19 @@ wss.on('connection', (ws) => {
                     }
                 }
                 else if (turn >= players.size * 2 && settlementVertices[row][col] == turn % players.size) {
+                    if (player.resources["brick"] < 1 || player.resources["grain"] < 1 || player.resources["lumber"] < 1 || player.resources["wool"] < 1) {
+                        return;
+                    }
+                    if (player.buildings["settlements"] == 0) {
+                        return;
+                    }
                     broadcast(String(message));
                     player.points++;
                     player.buildings["settlements"]--;
+                    player.resources["brick"]--;
+                    player.resources["grain"]--;
+                    player.resources["lumber"]--;
+                    player.resources["wool"]--;
                     settlementVertices[row][col] = players.size;
                     settlements[row][col] = turn % players.size;
                     cityVertices[row][col] = turn % players.size;

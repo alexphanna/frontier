@@ -109,6 +109,18 @@ div#menu {
     border-radius: 20px;
 }
 
+div#notification {
+    padding: 30px 30px;
+    position: absolute;
+    top: 30px;
+    width: 400px;
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 20px;
+}
+
 button,
 input {
     padding: 10px 20px;
@@ -138,5 +150,7 @@ button:active {
 }
 
 button:disabled {
+    cursor: not-allowed;
     background-color: #404040C0;
+    color: #808080
 }

@@ -19,7 +19,7 @@
         <button onclick="join()">Join</button>
     </div>
     <div id="lobby" class="interface" style="visibility: hidden; display: table;">
-        <h1>Players</h1>
+        <h1 id="playersHeading">Players</h1>
         <br>
         <div id="players" style="margin: 0px 10px;"></div>
         <br>
@@ -31,14 +31,16 @@
             <h2>Your turn</h2>
         </div>-->
         <div id="bottomBar" class="interface" style="visibility: hidden;"> <!-- aka turn bar -->
-            <button id="settlement" onclick="build('settlement')">Settlement</button>
-            <button id="city" onclick="build('city')">City</button>
-            <button id="road" onclick="build('road')">Road</button>
+            <button id="settlementButton" title="1 Brick&#013;1 Grain&#013;1 Lumber&#013;1 Wool" onclick="build('settlement')">Settlement</button>
+            <button id="cityButton" title="2 Grain&#013;3 Ore" onclick="build('city')" disabled>City</button>
+            <button id="roadButton" title="1 Brick&#013;1 Lumber" onclick="build('road')">Road</button>
             <button id="endTurn" style="position: absolute; right: 10px;" onclick="endTurn()">Next Turn</button>
         </div>
         <div id="leftBar" class="interface"></div>
         <div id="rightBar" class="interface"></div>
     </div>
+    <div id="notification" class="interface" style="visibility: hidden;"></div>
+    <audio id="placeSound" src="audio/place.mp3" autoplay></audio>
     <script src="script.js"></script>
 </body>
 

@@ -313,6 +313,36 @@ function updateUI(players) {
                 resources.appendChild(document.createElement('li')).textContent = `${resource.charAt(0).toUpperCase() + resource.slice(1)}: ${player.resources[resource]}`;
             }
 
+            if (player.resources['brick'] >= 1 
+                && player.resources['lumber'] >= 1 
+                && player.resources['wool'] >= 1 
+                && player.resources['grain'] >= 1 
+                && player.buildings['settlements'] >= 1) {
+                document.getElementById('settlementButton').disabled = false;
+            }
+            else {
+                document.getElementById('settlementButton').disabled = true;
+            }
+            
+            if (player.resources['grain'] >= 2 
+                && player.resources['ore'] >= 3
+                && player.buildings['cities'] >= 1) {
+                document.getElementById('cityButton').disabled = false;
+            }
+            else {
+                document.getElementById('cityButton').disabled = true;
+            }
+
+            if (player.resources['brick'] >= 1 
+                && player.resources['lumber'] >= 1
+                && player.buildings['roads'] >= 1) {
+                document.getElementById('roadButton').disabled = false;
+            }
+            else {
+                document.getElementById('roadButton').disabled = true;
+            }
+
+
             leftBar.appendChild(title);
             leftBar.appendChild(document.createElement('br'));
             leftBar.appendChild(buildingsHeading);
@@ -337,6 +367,7 @@ function updateUI(players) {
 }
 
 function updateLobby(players) {
+    document.getElementById('playersHeading').textContent = `Players (${players.length}/4)`;
     let playersDiv = document.getElementById('players');
     playersDiv.innerHTML = '';
     for (let player of players) {
@@ -366,15 +397,31 @@ function unready() {
     readyButton.setAttribute('onclick', 'ready()');
 }
 
+function notify(message) {
+    let notification = document.getElementById('notification');
+    notification.innerHTML = '';
+    notification.removeAttribute('style');
+    let heading = document.createElement('h3');
+    heading.textContent = message;
+    notification.appendChild(heading);
+
+    setTimeout(function () {
+        notification.style.display = 'none';
+    }, 3000);
+}
+
 function join() {
     name = document.getElementById('name').value;
     address = document.getElementById('address').value;
-
-    document.getElementById("menu").style.display = "none";
-    document.getElementById("lobby").removeAttribute("style");
-
+    
     ws = new WebSocket(`ws://${address}`);
+    ws.onerror = function (event) {
+        notify("Could not connect to server");
+    }
     ws.onopen = function () {
+        document.getElementById("menu").style.display = "none";
+        document.getElementById("lobby").removeAttribute("style");
+
         ws.send(`add ${name}`);
         ws.send('get map');
     }
@@ -389,6 +436,7 @@ function join() {
             updateUI(players);
         }
         else if (args[0] === 'build') {
+            document.getElementById('placeSound').play();
             if (args[1] === 'settlement') {
                 const vertex = map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
                 const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
@@ -424,6 +472,7 @@ function join() {
                 document.getElementById('game').removeAttribute('style');
             }
             else if (args[1] === 'turn') {
+                notify('Your turn');
                 document.getElementById('bottomBar').style.visibility = 'visible';
             }
         }
