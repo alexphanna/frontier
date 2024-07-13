@@ -193,7 +193,16 @@ let clients = new Set();
 let ready = new Set();
 let colors = shuffle(["red", "orange", "yellow", "lime", "blue", "magenta"]);
 let map = generateMap();
+for (let i = 0; i < map.terrainMap.length; i++) {
+    for (let j = 0; j < map.terrainMap[i].length; j++) {
+        if (map.terrainMap[i][j] === "Desert") {
+            var robber = [i, j];
+            break;
+        }
+    }
+}
 let turn = 0;
+let roll = 0;
 
 let settlementVertices = [];
 let cityVertices = [];
@@ -245,6 +254,8 @@ wss.on('connection', (ws) => {
             ws.send('color ' + colors[players.size]);
             players.add(new Player(args[1], colors[players.size]));
             clients.add(ws);
+            ws.send('map ' + JSON.stringify(map));
+            ws.send('robber ' + JSON.stringify(robber));
             broadcast('players ' + JSON.stringify(Array.from(players)));
         }
         else if (args[0] === 'ready') {
@@ -378,6 +389,15 @@ wss.on('connection', (ws) => {
             else if (args[1] === 'points') {
                 broadcastPoints();
             }
+            else if (args[1] === 'robber') {
+                ws.send('robber ' + JSON.stringify(robber));
+            }
+        }
+        else if (args[0] === 'robber') {
+            if (roll === 7) {
+                broadcast(String(message));
+                robberMoved = true;
+            }
         }
         else if (args[0] === 'end' && args[1] === 'turn') {
             turn++;
@@ -392,7 +412,7 @@ wss.on('connection', (ws) => {
             if (turn >= players.size * 2) {
                 // roll dice
                 Array.from(clients)[turn % players.size].send('start turn');
-                const roll = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
+                roll = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
                 broadcast('roll ' + roll);
 
                 // Simplified resource distribution

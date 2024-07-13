@@ -2,6 +2,7 @@ class Map {
     constructor(svg, terrainMap, numberMap) {
         this.terrainMap = terrainMap;
         this.numberMap = numberMap;
+        this.robberActive = false;
 
         // Draw the map
         const maxLength = Math.max(...this.terrainMap.map(row => row.length));
@@ -43,6 +44,9 @@ class Map {
         for (let i = 0; i < this.terrainMap.length; i++) {
             for (let j = 0; j < this.terrainMap[i].length; j++) {
                 let tile = createTile(j * this.inradius * 2 + this.inradius * (maxLength + 1 - this.terrainMap[i].length) + this.leftMargin, i * (this.sideLength + Math.sqrt(Math.pow(this.sideLength, 2) - Math.pow(this.inradius, 2))) + this.circumradius + this.topMargin, this.inradius * 2, this.terrainMap[i][j], this.numberMap[i][j]);
+                tile.addEventListener('click', function () {
+                    ws.send(`robber ${i} ${j}`);
+                });
                 tiles.appendChild(tile);
             }
         }
@@ -60,8 +64,17 @@ class Map {
         svg.appendChild(cityVertices);
         cityVertices.setAttribute("visibility", "hidden");
 
+        this.robber = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        this.robber.setAttribute("r", (this.inradius * 2) / 5);
+        this.robber.setAttribute("fill", "#000000C0");
+        svg.appendChild(this.robber);
+
         ws.send('get points');
         center(svg);
+    }
+    moveRobber(row, col) {
+        this.robber.setAttribute("cx", (this.inradius * 2) * col  + this.inradius * (5 - this.terrainMap[row].length) + this.leftMargin + this.inradius);
+        this.robber.setAttribute("cy", row * (this.sideLength + Math.sqrt(Math.pow(this.sideLength, 2) - Math.pow(this.inradius, 2))) + this.circumradius + this.topMargin);
     }
     highlightTokens(number) {
         for (let tile of svg.getElementsByClassName("tile")) {
@@ -296,8 +309,13 @@ function updateUI(players) {
     for (let player of players) {
         let title = document.createElement('h2');
         title.style.color = player.color;
-        title.textContent = `${player.name} (${player.points})`;
+        title.textContent = `${player.name} `;
+        let points = document.createElement('span');
+        points.textContent = `(${player.points})`;
+        title.appendChild(points);
         let resourcesHeading = document.createElement('h3');
+        let developmentsHeading = document.createElement('h3');
+        developmentsHeading.textContent = 'Developments:';
         
         if (player.name == name) {
             let buildingsHeading = document.createElement('h3');
@@ -312,6 +330,16 @@ function updateUI(players) {
             for (let resource in player.resources) {
                 resources.appendChild(document.createElement('li')).textContent = `${resource.charAt(0).toUpperCase() + resource.slice(1)}: ${player.resources[resource]}`;
             }
+
+            leftBar.appendChild(title);
+            leftBar.appendChild(document.createElement('br'));
+            leftBar.appendChild(buildingsHeading);
+            leftBar.appendChild(buildings);
+            leftBar.appendChild(document.createElement('br'));
+            leftBar.appendChild(resourcesHeading);
+            leftBar.appendChild(resources);
+            leftBar.appendChild(document.createElement('br'));
+            leftBar.appendChild(developmentsHeading);
 
             if (player.resources['brick'] >= 1 
                 && player.resources['lumber'] >= 1 
@@ -341,15 +369,6 @@ function updateUI(players) {
             else {
                 document.getElementById('roadButton').disabled = true;
             }
-
-
-            leftBar.appendChild(title);
-            leftBar.appendChild(document.createElement('br'));
-            leftBar.appendChild(buildingsHeading);
-            leftBar.appendChild(buildings);
-            leftBar.appendChild(document.createElement('br'));
-            leftBar.appendChild(resourcesHeading);
-            leftBar.appendChild(resources);
         }
         else {
             let resourceCount = 0;
@@ -361,6 +380,7 @@ function updateUI(players) {
             rightBar.appendChild(title);
             rightBar.appendChild(document.createElement('br'));
             rightBar.appendChild(resourcesHeading);
+            rightBar.appendChild(developmentsHeading);
             rightBar.appendChild(document.createElement('br'));
         }
     }
@@ -423,7 +443,6 @@ function join() {
         document.getElementById("lobby").removeAttribute("style");
 
         ws.send(`add ${name}`);
-        ws.send('get map');
     }
     ws.onmessage = function (event) {
         console.log(event.data);
@@ -466,6 +485,9 @@ function join() {
             const maps = JSON.parse(args[1]);
             map = new Map(svg, maps.terrainMap, maps.numberMap);
         }
+        else if (args[0] === 'robber') {
+            map.moveRobber(parseInt(args[1]), parseInt(args[2]));
+        }
         else if (args[0] === 'start') {
             if (args[1] === 'game') {
                 document.getElementById('lobby').style.display = 'none';
@@ -478,6 +500,10 @@ function join() {
         }
         else if (args[0] === 'roll') {
             map.highlightTokens(parseInt(args[1]));
+
+            if (args[1] == 7) {
+                map.robberActive = true;
+            }
         }
         else if (args[0] === 'vertices') {
             var legalVertices = JSON.parse(args[2]);
