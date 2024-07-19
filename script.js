@@ -70,6 +70,7 @@ class Map {
         svg.appendChild(this.robber);
 
         ws.send('get points');
+        ws.send('get robber');
         center(svg);
     }
     moveRobber(row, col) {
@@ -417,17 +418,43 @@ function unready() {
     readyButton.setAttribute('onclick', 'ready()');
 }
 
-function notify(message) {
-    let notification = document.getElementById('notification');
-    notification.innerHTML = '';
-    notification.removeAttribute('style');
-    let heading = document.createElement('h3');
-    heading.textContent = message;
-    notification.appendChild(heading);
+class Notification {
+    constructor(message, isError = false, isTrade = false, duration = 3000) {
+        let notification = document.createElement('div');
+        notification.classList.add('interface', 'notification');
+        let number = document.getElementsByClassName('notification').length;
+        notification.style.top = `${number * 130 + 30}px`;
 
-    setTimeout(function () {
-        notification.style.display = 'none';
-    }, 3000);
+        let heading = document.createElement('h3');
+        heading.textContent = message;
+        heading.style.color = isError ? 'red' : '';
+
+        notification.appendChild(heading);
+        document.body.appendChild(notification);
+
+        const removeNotification = () => document.body.removeChild(notification);
+
+        const createButton = (text, backgroundColor, right, bottom) => {
+            let button = document.createElement('button');
+            button.textContent = text;
+            button.style = `background-color: ${backgroundColor}; position: absolute; right: ${right}px; bottom: ${bottom}px;`;
+            button.addEventListener('click', removeNotification);
+            return button;
+        };
+
+        if (duration === 0) {
+            notification.style.height = '150px';
+            if (isTrade) {
+                notification.appendChild(createButton('Accept', '#00C000', 10, 10));
+                notification.appendChild(createButton('Decline', '#C00000', 120, 10)); // Adjusted for visual spacing
+            } else {
+                notification.appendChild(createButton('Close', '', 10, 10));
+            }
+        } else {
+            notification.style.textAlign = 'center';
+            setTimeout(removeNotification, duration);
+        }
+    }
 }
 
 function join() {
@@ -436,7 +463,7 @@ function join() {
     
     ws = new WebSocket(`ws://${address}`);
     ws.onerror = function (event) {
-        notify("Could not connect to server");
+        new Notification("Could not connect to server", true);
     }
     ws.onopen = function () {
         document.getElementById("menu").style.display = "none";
@@ -494,7 +521,7 @@ function join() {
                 document.getElementById('game').removeAttribute('style');
             }
             else if (args[1] === 'turn') {
-                notify('Your turn');
+                new Notification('Your turn');
                 document.getElementById('bottomBar').style.visibility = 'visible';
             }
         }
@@ -611,6 +638,8 @@ document.addEventListener('mousedown', function (event) {
 let svg = document.getElementById('map');
 let currentType = "settlement";
 let map;
+
+new Notification('Alex: 1 wood for 4 bricks', false, true, 0);
 
 var name;
 var color;

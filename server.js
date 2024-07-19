@@ -255,7 +255,6 @@ wss.on('connection', (ws) => {
             players.add(new Player(args[1], colors[players.size]));
             clients.add(ws);
             ws.send('map ' + JSON.stringify(map));
-            ws.send('robber ' + JSON.stringify(robber));
             broadcast('players ' + JSON.stringify(Array.from(players)));
         }
         else if (args[0] === 'ready') {
@@ -267,6 +266,11 @@ wss.on('connection', (ws) => {
         }
         else if (args[0] === 'unready') {
             ready.delete(ws);
+        }
+        else if (args[0] === 'get') {
+            if (args[1] === 'robber') {
+                ws.send('robber ' + JSON.stringify(robber[0]) + ' ' + JSON.stringify(robber[1]));
+            }
         }
         else if (args[0] === 'build') {
             if (turn >= players.size && turn < players.size * 2) {
@@ -396,7 +400,6 @@ wss.on('connection', (ws) => {
         else if (args[0] === 'robber') {
             if (roll === 7) {
                 broadcast(String(message));
-                robberMoved = true;
             }
         }
         else if (args[0] === 'end' && args[1] === 'turn') {
