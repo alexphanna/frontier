@@ -16,7 +16,8 @@ html,
 body,
 div#game {
     overflow: hidden;
-    background-color: #0040c0;
+    /*background-color: #0040c0;*/
+    background-color: #404040;
     width: 100vw;
     height: 100vh;
     display: flex;
@@ -94,6 +95,16 @@ div#rightBar {
     right: 0;
 }
 
+div#tradeMenu {
+    /*background-color: #103071;*/
+    background-color: #303030;
+    padding: 30px 30px;
+    width: 500px;
+    height: 500px;
+    border-radius: 20px;
+    display: flex;
+}
+
 div#lobby {
     padding: 30px 30px;
     width: 750px;
@@ -102,6 +113,7 @@ div#lobby {
     border-radius: 20px;
 
 }
+
 div#menu {
     padding: 30px 30px;
     text-align: center;
@@ -150,4 +162,14 @@ button:disabled {
     cursor: not-allowed;
     background-color: #404040C0;
     color: #808080
+}
+
+.smallButton {
+    color: #C0C0C0C0;
+    padding: 0px 0px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

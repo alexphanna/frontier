@@ -256,6 +256,7 @@ wss.on('connection', (ws) => {
             clients.add(ws);
             ws.send('map ' + JSON.stringify(map));
             broadcast('players ' + JSON.stringify(Array.from(players)));
+            broadcastPoints();
         }
         else if (args[0] === 'ready') {
             ready.add(ws);
@@ -270,6 +271,12 @@ wss.on('connection', (ws) => {
         else if (args[0] === 'get') {
             if (args[1] === 'robber') {
                 ws.send('robber ' + JSON.stringify(robber[0]) + ' ' + JSON.stringify(robber[1]));
+            }
+        }
+        else if (args[0] === 'trade') {
+            if (args[1] === 'offer') {
+                // check legality
+                broadcast(String(message));
             }
         }
         else if (args[0] === 'build') {
