@@ -186,6 +186,10 @@ function broadcastPoints() {
     }
 }
 
+function log(message) {
+    broadcast(`log ${message}`);
+}
+
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 let players = new Set();
@@ -291,6 +295,7 @@ wss.on('connection', (ws) => {
             if (args[1] === 'settlement' && player.buildings["settlements"] > 0) {
                 if (turn < players.size * 2 && isNaN(settlementVertices[row][col])) {
                     broadcast(String(message));
+                    log(player.name + ' built a settlement');
                     player.points++;
                     player.buildings["settlements"]--;
                     player.prevVertex = [row, col];
@@ -324,6 +329,7 @@ wss.on('connection', (ws) => {
                         return;
                     }
                     broadcast(String(message));
+                    log(player.name + ' built a settlement');
                     player.points++;
                     player.buildings["settlements"]--;
                     player.resources["brick"]--;
@@ -342,6 +348,7 @@ wss.on('connection', (ws) => {
             }
             else if (args[1] === 'city' && cityVertices[row][col] === turn % players.size && player.buildings["cities"] > 0) {
                 broadcast(String(message));
+                log(player.name + ' built a city');
                 player.points++;
                 player.buildings["cities"]--;
                 player.buildings["settlements"]++;
@@ -352,6 +359,7 @@ wss.on('connection', (ws) => {
             else if (args[1] === 'road' && player.buildings["roads"] > 0) {
                 // Re-add server-side validation
                 broadcast(String(message));
+                log(player.name + ' built a road');
                 player.buildings["roads"]--;
                 edges[row][col] = players.size;
 
@@ -408,6 +416,9 @@ wss.on('connection', (ws) => {
             if (roll === 7) {
                 broadcast(String(message));
             }
+        }
+        else if (args[0] === 'chat') {
+            broadcast(String(message));
         }
         else if (args[0] === 'end' && args[1] === 'turn') {
             turn++;

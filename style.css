@@ -1,47 +1,41 @@
 * {
-    font-family: Arial, sans-serif;
+    font-family: "Jost", sans-serif;
+    font-weight: normal;
     box-sizing: border-box;
     color: white;
     margin: 0;
     padding: 0;
 }
 
-ul li {
-    margin-left: 10px;
-    list-style-type: none;
-    color: #e0e0e0;
-}
-
 html,
 body,
 div#game {
     overflow: hidden;
-    /*background-color: #0040c0;*/
-    background-color: #404040;
+    background-color: #0040C0;
     width: 100vw;
     height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
 }
 
 svg {
     position: absolute;
-    /*border: 1px solid red;*/
 }
 
 polygon,
 rect {
-    /*stroke: black;
-    stroke-width: .5;*/
     transform-origin: center;
     transform-box: fill-box;
 }
 
 text {
+    font-family: Arial, Helvetica, sans-serif; /* Jost doesn't center properly fix later */
     text-anchor: middle;
     dominant-baseline: middle;
+}
+
+ul li {
+    margin-left: 10px;
+    list-style-type: none;
+    color: #e0e0e0;
 }
 
 .interface {
@@ -51,48 +45,67 @@ text {
     box-shadow: 0 8px 32px 0 #10101080;
     position: fixed;
     z-index: 1;
-    padding: 10px 20px;
 }
 
-div#topBar,
-div#bottomBar {
-    padding: 10px 20px;
+.nav {
+    display: flex;
+}
+
+.navButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    background-color: #80808080;
+}
+.navButton:disabled {
+    cursor: default;
+    background-color: #00000000;
+}
+
+.actionNav {
+    display: flex;
+}
+.actionButton {
     display: flex;
     justify-content: center;
     align-items: center;
+    background-color: #00000000;
 }
 
-div#topBar {
+div#sideContent {
+    padding: 0px;
+}
+
+div#sidebar {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    height: 100%;
     top: 0;
-    border-bottom-left-radius: 20px;
-    border-bottom-right-radius: 20px;
+    width: 300px;
+}
+
+div#sideContent {
+    padding: 20px;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+}
+
+div#navbar {
+    position: fixed;
+    top: 0;
+    padding: 20px;
+    z-index: 1;
 }
 
 div#bottomBar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     bottom: 0;
     width: 100%;
-    /*border-top-left-radius: 20px;
-    border-top-right-radius: 20px;*/
-}
-
-div#leftBar,
-div#rightBar {
-    text-align: left;
-    height: 60%;
-    top: 20%;
-    width: 200px;
-}
-
-div#leftBar {
-    border-top-right-radius: 20px;
-    border-bottom-right-radius: 20px;
-    left: 0;
-}
-
-div#rightBar {
-    border-top-left-radius: 20px;
-    border-bottom-left-radius: 20px;
-    right: 0;
 }
 
 div#tradeMenu {
@@ -114,12 +127,16 @@ div#lobby {
 
 }
 
+div#content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
 div#menu {
-    padding: 30px 30px;
     text-align: center;
-    width: 500px;
-    height: 500px;
-    border-radius: 20px;
 }
 
 .notification {
@@ -132,44 +149,42 @@ div#menu {
 
 button,
 input {
-    padding: 10px 20px;
+    padding: 15px 15px;
     font-size: 16px;
     border: none;
-    border-radius: 10px;
-    margin: 8px 4px;
 }
-
 input {
     color: black;
 }
 
+input#chatInput {
+    color: white;
+    width: 100%;
+    margin: 0px;
+    font-size: 16px;
+    border-top: 2px solid #80808080;
+    background-color: #00000000;
+    min-height: fit-content;
+}
+input#chatInput:focus {
+    outline: none;
+}
+input#chatInput::placeholder {
+    color: #808080;
+}
+
 button {
     cursor: pointer;
-    background-color: #60606080;
-    color: white;
     font-weight: bold;
+    background-color: #202020C0;
+    color: white;
 }
-
 button:hover {
-    background-color: #808080C0;
+    background-color: #ffffffC0;
+    color: black;
 }
-
-button:active {
-    background-color: #C0C0C0C0;
-}
-
 button:disabled {
     cursor: not-allowed;
-    background-color: #404040C0;
-    color: #808080
-}
-
-.smallButton {
-    color: #C0C0C0C0;
-    padding: 0px 0px;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background-color: #80808080;
+    color: white;
 }
