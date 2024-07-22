@@ -12,23 +12,26 @@
         <h1 style="font-weight: bold;">CATAN</h1>
     </div>
     <div id="content">
-        <div id="menu">
-            <input type="text" placeholder="NAME" style="margin: 15px;" id="name">
-            <br>
-            <input type="text" placeholder="SERVER ADDRESS" style="margin: 15px;" id="address">
-            <br>
-            <button style="margin: 15px;" onclick="join()">JOIN</button>
+        <div id="menu" class="interface">
+            <div>
+                <input type="text" placeholder="NAME" style="margin: 15px;" id="name">
+                <br>
+                <input type="text" placeholder="SERVER ADDRESS" style="margin: 15px;" id="address">
+                <br>
+                <button style="margin: 15px;" onclick="join()">JOIN</button>
+            </div>
         </div>
-        <div id="lobby" class="interface" style="visibility: hidden; display: table;">
-            <h1 id="playersHeading">Players</h1>
+        <div id="lobby" class="interface" style="visibility: hidden;">
+            <h1 id="playersHeading" style="font-weight: bold">Players</h1>
             <br>
             <div id="players" style="margin: 0px 10px;"></div>
             <br>
-            <button id="readyButton" onclick="ready()" style="position: absolute; bottom: 20px; right: 30px">Ready</button>
+            <button id="readyButton" onclick="ready()" style="position: absolute; bottom: 0px; right: 0px">READY</button>
         </div>
     </div>
     <div id="game" style="visibility: hidden;">
         <svg id="map" width="700" height="700" viewBox="-10 -10 120 120" style="left: 0px; top: 0px"></svg>
+        <div id="notifications"></div>
         <div id="sidebar" class="interface">
             <div class="nav">
                 <button id="infoButton" class="navButton" onclick="showInfo()" style="border-right: 1px solid #80808080;">INFO</button>
@@ -36,7 +39,7 @@
                 <button id="chatButton" class="navButton" onclick="showChat()" style="border-left: 1px solid #80808080;">CHAT</button>
             </div>
             <div id="sideContent" class="content"></div>
-            <div id="actions">
+            <div id="actions" style="visibility: hidden;">
                 <div class="actionNav">
                     <button id="settlementButton" class="actionButton" onclick="build('settlement')" style="width: 150px; border-right: 1px solid #80808080; border-bottom: 1px solid #80808080;">SETTLEMENT</button>
                     <button id="cityButton" class="actionButton" onclick="build('city')" style="width: 150px; border-left: 1px solid #80808080; border-bottom: 1px solid #80808080;">CITY</button>

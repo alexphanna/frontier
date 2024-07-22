@@ -73,7 +73,7 @@ class Map {
         center(svg);
     }
     moveRobber(row, col) {
-        this.robber.setAttribute("cx", (this.inradius * 2) * col  + this.inradius * (5 - this.terrainMap[row].length) + this.leftMargin + this.inradius);
+        this.robber.setAttribute("cx", (this.inradius * 2) * col + this.inradius * (5 - this.terrainMap[row].length) + this.leftMargin + this.inradius);
         this.robber.setAttribute("cy", row * (this.sideLength + Math.sqrt(Math.pow(this.sideLength, 2) - Math.pow(this.inradius, 2))) + this.circumradius + this.topMargin);
     }
     highlightTokens(number) {
@@ -155,16 +155,16 @@ class Map {
 }
 class Building {
     static shapes = {
-        settlement : `0,0 2,-2 4,0 4,4 0,4`,
-        city : `0,0 2,-2 4,0 4,2 8,2 8,6 0,6`
+        settlement: `0,0 2,-2 4,0 4,4 0,4`,
+        city: `0,0 2,-2 4,0 4,2 8,2 8,6 0,6`
     }
     static widths = {
-        settlement : 2,
-        city : 4
+        settlement: 2,
+        city: 4
     }
     static heights = {
-        settlement : 2,
-        city : 3
+        settlement: 2,
+        city: 3
     }
 
     static createRoad(x, y, angle, fill, stroke) {
@@ -305,6 +305,7 @@ function updateLobby(players) {
     for (let player of players) {
         playerHeading = playersDiv.appendChild(document.createElement('h2'));
         playerHeading.style.color = player.color;
+        playerHeading.style.fontWeight = 'bold';
         playerHeading.textContent = `${player.name}`;
         playersDiv.appendChild(playerHeading);
     }
@@ -312,7 +313,7 @@ function updateLobby(players) {
 
 function endTurn() {
     ws.send('end turn');
-    document.getElementById('bottomBar').style.visibility = 'hidden';
+    document.getElementById('actions').style.visibility = 'hidden';
 }
 
 function ready() {
@@ -329,179 +330,77 @@ function unready() {
     readyButton.setAttribute('onclick', 'ready()');
 }
 
+const createButton = (text, remove) => {
+    let button = document.createElement('button');
+    button.textContent = text;
+    button.style.margin = '10px';
+    button.addEventListener('click', remove);
+    return button;
+};
+
 class Notification {
-    constructor(message, isError = false, isTrade = false, duration = 3000) {
+    constructor(message, isError = false, duration = 3000) {
         let notification = document.createElement('div');
         notification.classList.add('interface', 'notification');
-        let number = document.getElementsByClassName('notification').length;
-        notification.style.top = `${number * 130 + 30}px`;
 
         let heading = document.createElement('h3');
         heading.textContent = message;
         heading.style.color = isError ? 'red' : '';
-
+        heading.style.margin = '10px';
         notification.appendChild(heading);
-        document.body.appendChild(notification);
 
-        const removeNotification = () => document.body.removeChild(notification);
+        let notifications = document.getElementById('notifications');
+        notifications.appendChild(notification);
 
-        const createButton = (text, backgroundColor, right, bottom) => {
-            let button = document.createElement('button');
-            button.textContent = text;
-            button.style = `background-color: ${backgroundColor}; position: absolute; right: ${right}px; bottom: ${bottom}px;`;
-            button.addEventListener('click', removeNotification);
-            return button;
-        };
+        const removeNotification = () => notifications.removeChild(notification);
 
         if (duration === 0) {
-            notification.style.height = '150px';
-            if (isTrade) {
-                notification.appendChild(createButton('Accept', '#00C000', 10, 10));
-                notification.appendChild(createButton('Decline', '#C00000', 120, 10)); // Adjusted for visual spacing
-            } else {
-                notification.appendChild(createButton('Close', '', 10, 10));
-            }
+            let buttons = document.createElement('div');
+            buttons.style.display = 'flex';
+            buttons.style.flexDirection = 'row-reverse';
+            buttons.appendChild(createButton('Close', removeNotification));
+            notification.appendChild(buttons);
         } else {
             notification.style.textAlign = 'center';
             setTimeout(removeNotification, duration);
         }
     }
 }
+class tradeOffer {
+    constructor(name, offer) {
+        let tradeOffer = document.createElement('div');
+        tradeOffer.classList.add('interface', 'notification');
 
-class TradeMenu {
-    constructor() {
-        let tradeMenu = document.createElement('div');
-        tradeMenu.classList.add('interface');
-        tradeMenu.setAttribute('id', 'tradeMenu');
+        let heading = document.createElement('h3');
+        heading.textContent = name;
+        heading.style.fontWeight = 'bold';
+        heading.style.color = players.find(player => player.name === name).color;
+        let span = document.createElement('span');
+        span.textContent = `: ${offer}`;
+        heading.appendChild(span);
+        
+        heading.style.margin = '10px';
 
-        let you = {
-            "brick": 0,
-            "lumber": 0,
-            "wool": 0,
-            "grain": 0,
-            "ore": 0
-        }
-        let them = {
-            "brick": 0,
-            "lumber": 0,
-            "wool": 0,
-            "grain": 0,
-            "ore": 0
-        }
+        tradeOffer.appendChild(heading);
+        
+        let notifications = document.getElementById('notifications');
+        notifications.appendChild(tradeOffer);
 
-        for (let i = 0; i < 2; i++) {
-            let div = document.createElement('div');
-            div.style.width = '50%';
-            div.style.height = '100%';
+        const removeTradeOffer = () => notifications.removeChild(tradeOffer);
 
-            let heading = document.createElement('h2');
-            heading.textContent = i === 0 ? 'You' : 'Them';
-            div.appendChild(heading);
-
-            let resources = ['brick', 'lumber', 'wool', 'grain', 'ore'];
-
-            for (let resource of resources) {
-                if (i == 0 && playerResources[resource] === 0) {
-                    continue;
-                }
-
-                let resourceDiv = document.createElement('div');
-                resourceDiv.style.display = 'flex';
-                resourceDiv.style.alignItems = 'center';
-                resourceDiv.style.justifyContent = 'space-between';
-                resourceDiv.style.padding = '0px 10px';
-
-                let resourceHeading = document.createElement('h3');
-                resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + (i === 0 ? you[resource] : them[resource]);
-                resourceHeading.style.color = '#e0e0e0'
-                resourceDiv.appendChild(resourceHeading);
-
-                let resourceButtons = document.createElement('div');
-                resourceButtons.style.display = 'flex';
-
-                let minusButton = document.createElement('button');
-                minusButton.classList.add('smallButton');
-                minusButton.textContent = '-';
-                minusButton.disabled = true;
-                minusButton.addEventListener('click', () => {
-                    if (i === 0) {
-                        you[resource]--;
-                        minusButton.disabled = you[resource] === 0;
-                        plusButton.disabled = you[resource] === playerResources[resource];
-                    }
-                    else {
-                        them[resource]--;
-                        minusButton.disabled = them[resource] === 0;
-                    }
-                    resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + (i === 0 ? you[resource] : them[resource]);
-                });
-                resourceButtons.appendChild(minusButton);
-
-                let plusButton = document.createElement('button');
-                plusButton.classList.add('smallButton');
-                plusButton.textContent = '+';
-                plusButton.disabled = false;
-                plusButton.addEventListener('click', () => {
-                    if (i === 0) {
-                        you[resource]++;
-                        minusButton.disabled = you[resource] === 0;
-                        plusButton.disabled = you[resource] === playerResources[resource];
-                    }
-                    else {
-                        them[resource]++;
-                        minusButton.disabled = them[resource] === 0;
-                    }
-                    resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + (i === 0 ? you[resource] : them[resource]);
-                });
-                resourceButtons.appendChild(plusButton);
-
-                resourceDiv.appendChild(resourceButtons);
-                div.appendChild(resourceDiv);
-            }
-            
-            tradeMenu.appendChild(div);
-        }
-
-        let tradeButton = document.createElement('button');
-        tradeButton.textContent = 'Offer trade';
-        tradeButton.style.position = 'absolute';
-        tradeButton.style.bottom = '10px';
-        tradeButton.style.right = '10px';
-
-        const removeZeroes = (obj) => {
-            for (let key in obj) {
-                if (obj[key] === 0) {
-                    delete obj[key];
-                }
-            }
-            return obj;
-        }
-
-        tradeButton.addEventListener('click', () => {
-            document.body.removeChild(tradeMenu);
-            you = removeZeroes(you);
-            them = removeZeroes(them);
-            if (Object.keys(you).length === 0 || Object.keys(them).length === 0) {
-                new Notification('Trade offer must include at least one resource from each player', true);
-            }
-            else if (you == them) {
-                // does not work, need more robust comparison
-                new Notification('Trade offer cannot be a one-to-one trade', true);
-            }
-            else {
-                ws.send(`trade offer ${name} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))}`);
-            }
-        });
-        tradeMenu.appendChild(tradeButton);
-
-        document.body.appendChild(tradeMenu);
+        let buttons = document.createElement('div');
+        buttons.style.display = 'flex';
+        buttons.style.flexDirection = 'row-reverse';
+        buttons.appendChild(createButton('ACCEPT', removeTradeOffer));
+        buttons.appendChild(createButton('DECLINE', removeTradeOffer)); // Adjusted for visual spacing
+        tradeOffer.appendChild(buttons);
     }
 }
 
 function join() {
     name = document.getElementById('name').value;
     address = document.getElementById('address').value;
-    
+
     ws = new WebSocket(`ws://${address}`);
     ws.onerror = function (event) {
         new Notification("Could not connect to server", true);
@@ -521,6 +420,9 @@ function join() {
             players = JSON.parse(args[1]);
             playerResources = players.find(player => player.name === name).resources;
             updateLobby(players);
+            if (document.getElementById('infoButton').disabled) {
+                showInfo();
+            }
         }
         else if (args[0] === 'trade') {
             if (args[1] === 'offer') {
@@ -529,12 +431,12 @@ function join() {
                     for (let resource in obj) {
                         string += `${obj[resource]} ${resource}`;
                         if (Object.keys(obj).length == 2) {
-                            if (Object.keys(obj).indexOf(resource) == 0) {  
+                            if (Object.keys(obj).indexOf(resource) == 0) {
                                 string += ' and ';
                             }
                         }
                         else if (Object.keys(obj).indexOf(resource) != Object.keys(obj).length - 1) {
-                            if (Object.keys(obj).indexOf(resource) == Object.keys(obj).length - 2) {  
+                            if (Object.keys(obj).indexOf(resource) == Object.keys(obj).length - 2) {
                                 string += ' and ';
                             }
                             else {
@@ -545,7 +447,7 @@ function join() {
                     return string;
                 }
 
-                new Notification(`${args[2]}: ${stringify(JSON.parse(args[3]))} for ${stringify(JSON.parse(args[4]))}`, false, true, 0);
+                new tradeOffer(args[2], `${stringify(JSON.parse(args[4]))} → ${stringify(JSON.parse(args[3]))}`);
             }
         }
         else if (args[0] === 'build') {
@@ -598,11 +500,11 @@ function join() {
             if (args[1] === 'game') {
                 document.getElementById('lobby').style.display = 'none';
                 document.getElementById('navbar').style.display = 'none';
-                document.getElementById('game').removeAttribute('style');
+                document.getElementById('game').style.visibility = 'visible';
                 showInfo();
             }
             else if (args[1] === 'turn') {
-                document.getElementById('bottomBar').style.visibility = 'visible';
+                document.getElementById('actions').style.visibility = 'visible';
             }
         }
         else if (args[0] === 'roll') {
@@ -675,6 +577,7 @@ function showInfo() {
     document.getElementById('chatInput').style.display = 'none';
     let content = document.getElementById('sideContent');
     content.innerHTML = '';
+    content.style.textAlign = 'left';
     for (let player of players) {
         let playerTitle = document.createElement('h2');
         playerTitle.textContent = player.name;
@@ -710,6 +613,120 @@ function showTrade() {
     document.getElementById('chatInput').style.display = 'none';
     let content = document.getElementById('sideContent');
     content.innerHTML = '';
+    content.style.textAlign = 'center';
+
+    let you = {
+        "brick": 0,
+        "lumber": 0,
+        "wool": 0,
+        "grain": 0,
+        "ore": 0
+    }
+    let them = {
+        "brick": 0,
+        "lumber": 0,
+        "wool": 0,
+        "grain": 0,
+        "ore": 0
+    }
+    let resources = ['brick', 'lumber', 'wool', 'grain', 'ore'];
+    let playerResources = players.find(player => player.name === name).resources;
+    for (let i = 0; i < 2; i++) {
+
+        for (let resource of resources) {
+            let resourceDiv = document.createElement('div');
+            resourceDiv.style.display = 'flex';
+            resourceDiv.style.alignItems = 'center';
+            resourceDiv.style.justifyContent = 'space-between';
+
+            let resourceHeading = document.createElement('h3');
+            resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + (i === 0 ? you[resource] : them[resource]);
+            resourceDiv.appendChild(resourceHeading);
+
+            let resourceButtons = document.createElement('div');
+            resourceButtons.style.display = 'flex';
+
+            let minusButton = document.createElement('button');
+            minusButton.classList.add('smallButton');
+            minusButton.textContent = '-';
+            minusButton.disabled = true;
+            minusButton.addEventListener('click', () => {
+                if (i === 0) {
+                    you[resource]--;
+                    minusButton.disabled = you[resource] === 0;
+                    plusButton.disabled = you[resource] === playerResources[resource];
+                }
+                else {
+                    them[resource]--;
+                    minusButton.disabled = them[resource] === 0;
+                }
+                resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + (i === 0 ? you[resource] : them[resource]);
+            });
+            resourceButtons.appendChild(minusButton);
+
+            let plusButton = document.createElement('button');
+            plusButton.classList.add('smallButton');
+            plusButton.textContent = '+';
+            plusButton.disabled = false;
+            plusButton.addEventListener('click', () => {
+                if (i === 0) {
+                    you[resource]++;
+                    minusButton.disabled = you[resource] === 0;
+                    plusButton.disabled = you[resource] === playerResources[resource];
+                }
+                else {
+                    them[resource]++;
+                    minusButton.disabled = them[resource] === 0;
+                }
+                resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + (i === 0 ? you[resource] : them[resource]);
+            });
+            resourceButtons.appendChild(plusButton);
+
+            resourceDiv.appendChild(resourceButtons);
+            content.appendChild(resourceDiv);
+        }
+        if (i === 0) {
+            let downArrow = document.createElement('h2');
+            downArrow.textContent = '↓';
+            content.appendChild(downArrow);
+        }
+    }
+    offerButton = document.createElement('button');
+    offerButton.textContent = 'OFFER';
+
+    const removeZeroes = (obj) => {
+        for (let key in obj) {
+            if (obj[key] === 0) {
+                delete obj[key];
+            }
+        }
+        return obj;
+    }
+
+    offerButton.addEventListener('click', () => {
+        you = removeZeroes(you);
+        them = removeZeroes(them);
+        if (Object.keys(you).length === 0 || Object.keys(them).length === 0) {
+            new Notification('Trade offer must include at least one resource from each player', true);
+        }
+        else if (you == them) {
+            // does not work, need more robust comparison
+            new Notification('Trade offer cannot be a one-to-one trade', true);
+        }
+        else {
+            ws.send(`trade offer ${name} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))}`);
+            you = {
+                "brick": 0,
+                "lumber": 0,
+                "wool": 0,
+                "grain": 0,
+                "ore": 0
+            }
+        }
+        showTrade();
+    });
+    content.appendChild(offerButton);
+
 }
 
 function showChat() {
@@ -718,6 +735,7 @@ function showChat() {
     document.getElementById('chatInput').style.removeProperty('display');
     let content = document.getElementById('sideContent');
     content.innerHTML = '';
+    content.style.textAlign = 'left';
     for (let message of chat) {
         if (message.length === 1) {
             let messageDiv = document.createElement("div");
@@ -730,6 +748,7 @@ function showChat() {
             let messageDiv = document.createElement("div");
             messageDiv.textContent = message[0];
             messageDiv.style.color = players.find(player => player.name === message[0]).color;
+            messageDiv.style.fontWeight = "bold";
             let span = document.createElement("span");
             span.textContent = `: ${message[1]}`;
             messageDiv.appendChild(span);
@@ -801,5 +820,4 @@ var chat = []; // array of chat messages
 var name;
 var color;
 var address;
-var playerResources;
 var players;
