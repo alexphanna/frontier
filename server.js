@@ -282,6 +282,20 @@ wss.on('connection', (ws) => {
                 // check legality
                 broadcast(String(message));
             }
+            else if (args[1] === 'accept') {
+                let you = Array.from(players).find(player => player.name === args[2]);
+                let them = Array.from(players).find(player => player.name === args[4]);
+                for (const [key, value] of Object.entries(JSON.parse(args[3]))) {
+                    you.resources[key] = you.resources[key] - value;
+                    them.resources[key] = them.resources[key] + value;
+                }
+                for (const [key, value] of Object.entries(JSON.parse(args[5]))) {
+                    you.resources[key] = you.resources[key] + value;
+                    them.resources[key] = them.resources[key] - value;
+                }
+                broadcast('players ' + JSON.stringify(Array.from(players)));
+                broadcast(`trade unoffer ${args[6]}`)
+            }
         }
         else if (args[0] === 'build') {
             if (turn >= players.size && turn < players.size * 2) {

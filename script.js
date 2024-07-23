@@ -330,11 +330,10 @@ function unready() {
     readyButton.setAttribute('onclick', 'ready()');
 }
 
-const createButton = (text, remove) => {
+const createButton = (text) => {
     let button = document.createElement('button');
     button.textContent = text;
     button.style.margin = '10px';
-    button.addEventListener('click', remove);
     return button;
 };
 
@@ -358,7 +357,9 @@ class Notification {
             let buttons = document.createElement('div');
             buttons.style.display = 'flex';
             buttons.style.flexDirection = 'row-reverse';
-            buttons.appendChild(createButton('Close', removeNotification));
+            let closeButton = createButton('Close');
+            closeButton.addEventListener('click', removeNotification);
+            buttons.appendChild(closeButton);
             notification.appendChild(buttons);
         } else {
             notification.style.textAlign = 'center';
@@ -367,16 +368,38 @@ class Notification {
     }
 }
 class tradeOffer {
-    constructor(name, offer) {
+    constructor(name, you, them, id) {
         let tradeOffer = document.createElement('div');
         tradeOffer.classList.add('interface', 'notification');
+        tradeOffer.id = id;
+
+        const stringify = (obj) => {
+            let string = '';
+            for (let resource in obj) {
+                string += `${obj[resource]} ${resource}`;
+                if (Object.keys(obj).length == 2) {
+                    if (Object.keys(obj).indexOf(resource) == 0) {
+                        string += ' and ';
+                    }
+                }
+                else if (Object.keys(obj).indexOf(resource) != Object.keys(obj).length - 1) {
+                    if (Object.keys(obj).indexOf(resource) == Object.keys(obj).length - 2) {
+                        string += ' and ';
+                    }
+                    else {
+                        string += ', ';
+                    }
+                }
+            }
+            return string;
+        }
 
         let heading = document.createElement('h3');
         heading.textContent = name;
         heading.style.fontWeight = 'bold';
         heading.style.color = players.find(player => player.name === name).color;
         let span = document.createElement('span');
-        span.textContent = `: ${offer}`;
+        span.textContent = `: ${stringify(JSON.parse(them))} → ${stringify(JSON.parse(you))}`;
         heading.appendChild(span);
         
         heading.style.margin = '10px';
@@ -391,14 +414,21 @@ class tradeOffer {
         let buttons = document.createElement('div');
         buttons.style.display = 'flex';
         buttons.style.flexDirection = 'row-reverse';
-        buttons.appendChild(createButton('ACCEPT', removeTradeOffer));
-        buttons.appendChild(createButton('DECLINE', removeTradeOffer)); // Adjusted for visual spacing
+        let acceptButton = createButton('ACCEPT');
+        acceptButton.addEventListener('click', () => {
+            ws.send(`trade accept ${name} ${you} ${playerName} ${them} ${id}`);
+            removeTradeOffer();
+        });
+        buttons.appendChild(acceptButton);
+        let declineButton = createButton('DECLINE');
+        declineButton.addEventListener('click', removeTradeOffer);
+        buttons.appendChild(declineButton);
         tradeOffer.appendChild(buttons);
     }
 }
 
 function join() {
-    name = document.getElementById('name').value;
+    playerName = document.getElementById('name').value;
     address = document.getElementById('address').value;
 
     ws = new WebSocket(`ws://${address}`);
@@ -409,7 +439,7 @@ function join() {
         document.getElementById("menu").style.display = "none";
         document.getElementById("lobby").removeAttribute("style");
 
-        ws.send(`add ${name}`);
+        ws.send(`add ${playerName}`);
     }
     ws.onmessage = function (event) {
         console.log(event.data);
@@ -418,36 +448,18 @@ function join() {
 
         if (args[0] === 'players') {
             players = JSON.parse(args[1]);
-            playerResources = players.find(player => player.name === name).resources;
+            playerResources = players.find(player => player.name === playerName).resources;
             updateLobby(players);
             if (document.getElementById('infoButton').disabled) {
                 showInfo();
             }
         }
         else if (args[0] === 'trade') {
-            if (args[1] === 'offer') {
-                const stringify = (obj) => {
-                    let string = '';
-                    for (let resource in obj) {
-                        string += `${obj[resource]} ${resource}`;
-                        if (Object.keys(obj).length == 2) {
-                            if (Object.keys(obj).indexOf(resource) == 0) {
-                                string += ' and ';
-                            }
-                        }
-                        else if (Object.keys(obj).indexOf(resource) != Object.keys(obj).length - 1) {
-                            if (Object.keys(obj).indexOf(resource) == Object.keys(obj).length - 2) {
-                                string += ' and ';
-                            }
-                            else {
-                                string += ', ';
-                            }
-                        }
-                    }
-                    return string;
-                }
-
-                new tradeOffer(args[2], `${stringify(JSON.parse(args[4]))} → ${stringify(JSON.parse(args[3]))}`);
+            if (args[1] === 'offer' && args[2] != playerName) {
+                new tradeOffer(args[2], args[3], args[4], args[5]);
+            }
+            else if (args[1] === 'unoffer') {
+                document.getElementById(args[2]).remove();
             }
         }
         else if (args[0] === 'build') {
@@ -590,7 +602,7 @@ function showInfo() {
         let playerResources = document.createElement('h3');
         playerResources.textContent = 'Resources:';
         content.appendChild(playerResources);
-        if (player.name === name) {
+        if (player.name === playerName) {
             let resources = document.createElement('ul');
             for (let resource in player.resources) {
                 resources.appendChild(document.createElement('li')).textContent = `${resource.charAt(0).toUpperCase() + resource.slice(1)}: ${player.resources[resource]}`;
@@ -630,7 +642,7 @@ function showTrade() {
         "ore": 0
     }
     let resources = ['brick', 'lumber', 'wool', 'grain', 'ore'];
-    let playerResources = players.find(player => player.name === name).resources;
+    let playerResources = players.find(player => player.name === playerName).resources;
     for (let i = 0; i < 2; i++) {
 
         for (let resource of resources) {
@@ -688,6 +700,7 @@ function showTrade() {
         if (i === 0) {
             let downArrow = document.createElement('h2');
             downArrow.textContent = '↓';
+            downArrow.style.color = '#E0E0E0';
             content.appendChild(downArrow);
         }
     }
@@ -714,7 +727,7 @@ function showTrade() {
             new Notification('Trade offer cannot be a one-to-one trade', true);
         }
         else {
-            ws.send(`trade offer ${name} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))}`);
+            ws.send(`trade offer ${playerName} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
             you = {
                 "brick": 0,
                 "lumber": 0,
@@ -726,7 +739,6 @@ function showTrade() {
         showTrade();
     });
     content.appendChild(offerButton);
-
 }
 
 function showChat() {
@@ -807,7 +819,7 @@ document.addEventListener('mousedown', function (event) {
 let input = document.getElementById('chatInput');
 input.addEventListener('keydown', function (event) {
     if (event.key === 'Enter') {
-        ws.send(`chat ${name} ${input.value}`);
+        ws.send(`chat ${playerName} ${input.value}`);
         input.value = '';
     }
 });
@@ -817,7 +829,7 @@ let currentType = "settlement";
 let map;
 
 var chat = []; // array of chat messages
-var name;
+var playerName;
 var color;
 var address;
 var players;
