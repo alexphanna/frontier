@@ -21,11 +21,11 @@ Catan in JavaScript
 - [ ] Support for more than 4 players
 - [ ] Harbors
 - [ ] Development cards
-- [ ] Robber
+- [x] Robber
 - [x] Better server-client communication language
 - [ ] Complete server-side validation w/ errors and stuff
 - [ ] Longest road
 - [x] Map zooming and moving
 - [ ] Game settings and client settings
-- [ ] Sound effects when place buildings and stuff
-- [ ] Trading
+- [x] Sound effects when place buildings and stuff
+- [x] Trading
