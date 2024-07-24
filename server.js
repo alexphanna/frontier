@@ -16,6 +16,18 @@ class Player {
             ore: 0,
             wool: 10
         };
+        this.developments = {
+            knight: 2,
+            monopoly: 1,
+            yearOfPlenty: 1,
+            roadBuilding: 0,
+            victoryPoint: 3
+        };
+    }
+    substractResources(resources) {
+        for (const [key, value] of Object.entries(resources)) {
+            this.resources[key] -= value;
+        }
     }
 }
 
@@ -50,7 +62,7 @@ class Vertex {
                 }
             }
         }
-        
+
         return adjacentVertices;
     }
 }
@@ -137,7 +149,7 @@ function broadcast(message) {
 }
 
 function broadcastPoints() {
-    for (let i = 0; i < players.size; i++) {   
+    for (let i = 0; i < players.size; i++) {
         const playerArray = Array.from(players);
         if (turn >= players.size && turn < players.size * 2 && playerArray[i].prevVertex != null) {
             var playerEdges = [];
@@ -172,7 +184,7 @@ function broadcastPoints() {
         for (let j = 0; j < settlementVertices.length; j++) {
             playerSettlementVertices.push([]);
             for (let k = 0; k < settlementVertices[j].length; k++) {
-                if (turn < players.size * 2) {  
+                if (turn < players.size * 2) {
                     playerSettlementVertices[j].push(isNaN(settlementVertices[j][k]));
                 }
                 else {
@@ -207,6 +219,14 @@ for (let i = 0; i < map.terrainMap.length; i++) {
 }
 let turn = 0;
 let roll = 0;
+let developmentDistr = {
+    knight: 14,
+    monopoly: 2,
+    yearOfPlenty: 2,
+    roadBuilding: 2,
+    victoryPoint: 5
+}
+let developments = shuffle(Object.keys(developmentDistr).map(development => Array(developmentDistr[development]).fill(development)).flat());
 
 let settlementVertices = [];
 let cityVertices = [];
@@ -245,7 +265,6 @@ for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
     edges.unshift(Array.from(temp2));
 }
 
-
 wss.on('connection', (ws) => {
     console.log('connected');
 
@@ -253,6 +272,13 @@ wss.on('connection', (ws) => {
         console.log(`${message}`);
 
         const args = String(message).split(' ');
+
+        if (turn >= players.size && turn < players.size * 2) {
+            var player = Array.from(players)[players.size - 1 - (turn % players.size)];
+        }
+        else {
+            var player = Array.from(players)[turn % players.size];
+        }
 
         if (args[0] === 'add') {
             ws.send('color ' + colors[players.size]);
@@ -297,16 +323,52 @@ wss.on('connection', (ws) => {
                 broadcast(`trade unoffer ${args[6]}`)
             }
         }
+        else if (args[0] === 'develop') {
+            costs = {
+                grain: 1,
+                ore: 1,
+                wool: 1
+            }
+            player.developments[developments.shift()]++;
+            player.substractResources(costs);
+            broadcast('players ' + JSON.stringify(Array.from(players)));
+        }
+        else if (args[0] === 'progress') {
+            if (args[1] === 'monopoly') {
+                const playerArray = Array.from(players);
+                if (player.developments["monopoly"] > 0) {
+                    player.developments["monopoly"]--;
+                    for (let i = 0; i < playerArray.length; i++) {
+                        if (i === turn % playerArray.length) {
+                            continue;
+                        }
+                        player.resources[args[2]] += playerArray[i].resources[args[2]];
+                        playerArray[i].resources[args[2]] = 0;
+                    }
+                }
+            }
+            else if (args[1] === 'yearOfPlenty') {
+                // make sure that the player only sent 2 resources
+                if (player.developments["yearOfPlenty"] > 0) {
+                    player.developments["yearOfPlenty"]--;
+                    let resources = JSON.parse(args[2]);
+                    for (let resource of Object.keys(resources)) {
+                        player.resources[resource] += resources[resource];
+                    }
+                }
+            }
+            broadcast('players ' + JSON.stringify(Array.from(players)));
+        }
         else if (args[0] === 'build') {
-            if (turn >= players.size && turn < players.size * 2) {
-                var player = Array.from(players)[players.size - 1 - (turn % players.size)];
-            }
-            else {
-                var player = Array.from(players)[turn % players.size];
-            }
             const row = parseInt(args[2]);
             const col = parseInt(args[3]);
             if (args[1] === 'settlement' && player.buildings["settlements"] > 0) {
+                const costs = {
+                    brick: 1,
+                    grain: 1,
+                    lumber: 1,
+                    wool: 1
+                }
                 if (turn < players.size * 2 && isNaN(settlementVertices[row][col])) {
                     broadcast(String(message));
                     log(player.name + ' built a settlement');
@@ -316,7 +378,7 @@ wss.on('connection', (ws) => {
                     settlementVertices[row][col] = players.size;
                     settlements[row][col] = turn % players.size;
                     cityVertices[row][col] = turn % players.size;
-                    
+
                     let adjacentEdges = Vertex.adjacentEdges(row, col);
                     for (let j = 0; j < adjacentEdges.length; j++) {
                         const edge = adjacentEdges[j];
@@ -329,7 +391,7 @@ wss.on('connection', (ws) => {
                             }
                         }
                     }
-                    
+
                     const adjacentVertices = Vertex.adjacentVertices(row, col);
                     for (let i = 0; i < adjacentVertices.length; i++) {
                         settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size + 1;
@@ -345,15 +407,11 @@ wss.on('connection', (ws) => {
                     broadcast(String(message));
                     log(player.name + ' built a settlement');
                     player.points++;
-                    player.buildings["settlements"]--;
-                    player.resources["brick"]--;
-                    player.resources["grain"]--;
-                    player.resources["lumber"]--;
-                    player.resources["wool"]--;
+                    player.substractResources(costs);
                     settlementVertices[row][col] = players.size;
                     settlements[row][col] = turn % players.size;
                     cityVertices[row][col] = turn % players.size;
-                    
+
                     const adjacentVertices = Vertex.adjacentVertices(row, col);
                     for (let i = 0; i < adjacentVertices.length; i++) {
                         settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size + 1;
@@ -361,20 +419,33 @@ wss.on('connection', (ws) => {
                 }
             }
             else if (args[1] === 'city' && cityVertices[row][col] === turn % players.size && player.buildings["cities"] > 0) {
+                const costs = {
+                    grain: 2,
+                    ore: 3
+                }
                 broadcast(String(message));
                 log(player.name + ' built a city');
                 player.points++;
                 player.buildings["cities"]--;
                 player.buildings["settlements"]++;
+                player.substractResources(costs);
                 cities[row][col] = turn % players.size;
                 settlements[row][col] = NaN;
                 cityVertices[row][col] = NaN;
-            } 
+            }
             else if (args[1] === 'road' && player.buildings["roads"] > 0) {
+                const costs = {
+                    brick: 1,
+                    lumber: 1
+                }
+
                 // Re-add server-side validation
                 broadcast(String(message));
                 log(player.name + ' built a road');
                 player.buildings["roads"]--;
+                if (turn >= players.size * 2) {
+                    player.substractResources(costs);
+                }
                 edges[row][col] = players.size;
 
                 const adjacentVertices = Edge.adjacentVertices(row, col);
@@ -409,9 +480,9 @@ wss.on('connection', (ws) => {
                         }
                     }
                 }
-                
+
             }
-                
+
             broadcastPoints();
             broadcast('players ' + JSON.stringify(Array.from(players)));
         }
@@ -452,20 +523,20 @@ wss.on('connection', (ws) => {
 
                 // Simplified resource distribution
                 const playersArray = Array.from(players); // Convert players to array once
-                
+
                 function updateResources(position, i, j, multiplier) {
                     if (!isNaN(position)) {
                         const player = playersArray[position];
                         player.resources[resources[map.terrainMap[i][j]]] += 1 * multiplier;
                     }
                 }
-                
+
                 for (let i = 0; i < map.terrainMap.length; i++) {
                     for (let j = 0; j < map.terrainMap[i].length; j++) {
                         if (map.numberMap[i][j] === roll) {
                             for (let k = -1; k <= 1; k++) {
                                 const baseIndex = j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1);
-                                updateResources(settlements[i][baseIndex],i , j, 1);
+                                updateResources(settlements[i][baseIndex], i, j, 1);
                                 updateResources(settlements[i + 1][baseIndex + (i >= map.terrainMap.length / 2 ? -1 : 1)], i, j, 1);
                                 updateResources(cities[i][baseIndex], i, j, 2);
                                 updateResources(cities[i + 1][baseIndex + (i >= map.terrainMap.length / 2 ? -1 : 1)], i, j, 2);

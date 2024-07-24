@@ -298,6 +298,11 @@ function build(type) {
     }
 }
 
+function develop() {
+    ws.send('develop');
+    
+}
+
 function updateLobby(players) {
     document.getElementById('playersHeading').textContent = `Players (${players.length}/4)`;
     let playersDiv = document.getElementById('players');
@@ -401,11 +406,11 @@ class tradeOffer {
         let span = document.createElement('span');
         span.textContent = `: ${stringify(JSON.parse(them))} → ${stringify(JSON.parse(you))}`;
         heading.appendChild(span);
-        
+
         heading.style.margin = '10px';
 
         tradeOffer.appendChild(heading);
-        
+
         let notifications = document.getElementById('notifications');
         notifications.appendChild(tradeOffer);
 
@@ -424,6 +429,137 @@ class tradeOffer {
         declineButton.addEventListener('click', removeTradeOffer);
         buttons.appendChild(declineButton);
         tradeOffer.appendChild(buttons);
+    }
+}
+
+class resourceInput {
+    constructor(limits = {}, limit = 0) {
+        this.resources = {
+            "brick": 0,
+            "grain": 0,
+            "lumber": 0,
+            "ore": 0,
+            "wool": 0
+        }
+        this.input = document.createElement('div');
+        for (let resource of Object.keys(this.resources)) {
+            let resourceDiv = document.createElement('div');
+            resourceDiv.style.display = 'flex';
+            resourceDiv.style.alignItems = 'center';
+            resourceDiv.style.justifyContent = 'space-between';
+
+            let resourceHeading = document.createElement('h3');
+            resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + this.resources[resource];
+            resourceDiv.appendChild(resourceHeading);
+
+            let resourceButtons = document.createElement('div');
+            resourceButtons.style.display = 'flex';
+
+            let minusButton = document.createElement('button');
+            minusButton.classList.add('smallButton');
+            minusButton.textContent = '-';
+            minusButton.disabled = true;
+            minusButton.addEventListener('click', () => {
+                this.resources[resource]--;
+                minusButton.disabled = this.resources[resource] === 0;
+                resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + this.resources[resource];
+                if (limit != 0) {
+                    for (let button of this.input.getElementsByClassName('plusButton')) {
+                        button.disabled = false;
+                    }
+                }
+                else if (limits != {}) {
+                    plusButton.disabled = false;
+                }
+            });
+            resourceButtons.appendChild(minusButton);
+
+            let plusButton = document.createElement('button');
+            plusButton.classList.add('smallButton', 'plusButton');
+            plusButton.textContent = '+';
+            plusButton.disabled = (limits != {} && this.resources[resource] === limits[resource]);
+            plusButton.addEventListener('click', () => {
+                this.resources[resource]++;
+                minusButton.disabled = this.resources[resource] === 0;
+                resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + this.resources[resource];
+                if (limit != 0) {
+                    for (let button of this.input.getElementsByClassName('plusButton')) {
+                        button.disabled = Object.values(this.resources).reduce((a, b) => a + b) === limit;
+                    }
+                }    
+                else if (limits != {}) {
+                    plusButton.disabled = this.resources[resource] === limits[resource];
+                }
+            });
+            resourceButtons.appendChild(plusButton);
+
+            resourceDiv.appendChild(resourceButtons);
+            this.input.appendChild(resourceDiv);
+        }
+    }
+}
+
+const removeZeroes = (obj) => {
+    for (let key in obj) {
+        if (obj[key] === 0) {
+            delete obj[key];
+        }
+    }
+    return obj;
+}
+
+class yearOfPlenty {
+    constructor() {
+        let yearOfPlenty = document.createElement('div');
+        yearOfPlenty.classList.add('interface', 'notification');
+
+        let heading = document.createElement('h3');
+        heading.textContent = 'Year of Plenty';
+        heading.style.fontWeight = 'bold';
+        heading.style.margin = '10px';
+        yearOfPlenty.appendChild(heading);
+
+        let notifications = document.getElementById('notifications');
+        notifications.appendChild(yearOfPlenty);
+
+        let selector = new resourceInput({}, 2);
+        selector.input.style.margin = '10px';
+        yearOfPlenty.appendChild(selector.input);
+
+        let confirmButton = createButton('CONFIRM');
+        confirmButton.addEventListener('click', () => {
+            ws.send(`progress yearOfPlenty ${JSON.stringify(removeZeroes(selector.resources))}`);
+            notifications.removeChild(yearOfPlenty);
+        });
+        yearOfPlenty.appendChild(confirmButton);
+    }
+}
+
+class monopoly {
+    constructor() {
+        let monopoly = document.createElement('div');
+        monopoly.classList.add('interface', 'notification');
+
+        let heading = document.createElement('h3');
+        heading.textContent = 'Monopoly';
+        heading.style.fontWeight = 'bold';
+        heading.style.margin = '10px';
+        monopoly.appendChild(heading);
+
+        let notifications = document.getElementById('notifications');
+        notifications.appendChild(monopoly);
+
+        const resources = ['brick', 'grain', 'lumber', 'ore', 'wool'];
+        for (let resource of resources) {
+            let button = createButton(resource.toUpperCase());
+            button.addEventListener('click', () => {
+                ws.send(`progress monopoly ${resource}`);
+                notifications.removeChild(monopoly);
+            });
+            monopoly.appendChild(button);
+        }
+
+        notifications.appendChild(monopoly);
     }
 }
 
@@ -450,8 +586,8 @@ function join() {
             players = JSON.parse(args[1]);
             playerResources = players.find(player => player.name === playerName).resources;
             updateLobby(players);
-            if (document.getElementById('infoButton').disabled) {
-                showInfo();
+            if (document.getElementById('buildButton').disabled) {
+                showBuild();
             }
         }
         else if (args[0] === 'trade') {
@@ -473,7 +609,7 @@ function join() {
                 const vertex = map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
                 const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
                 let settlements = document.getElementById('buildings').getElementsByClassName('settlement');
-                for (let i = 0; i < settlements.length; i++) {
+                for (let i = 0; i < settleINFOments.length; i++) {
                     const temp = Building.shapeToPoint(settlements[i].getAttribute('points'), 'settlement');
                     const point = map.vertexToStandard(temp.x, temp.y);
                     if (point.row == parseInt(args[2]) && point.col == parseInt(args[3])) {
@@ -513,7 +649,7 @@ function join() {
                 document.getElementById('lobby').style.display = 'none';
                 document.getElementById('navbar').style.display = 'none';
                 document.getElementById('game').style.visibility = 'visible';
-                showInfo();
+                showBuild();
             }
             else if (args[1] === 'turn') {
                 document.getElementById('actions').style.visibility = 'visible';
@@ -578,13 +714,13 @@ function join() {
 }
 
 function setActiveButton(button) {
-    document.getElementById('infoButton').disabled = (button === 'info' ? true : false);
+    document.getElementById('buildButton').disabled = (button === 'build' ? true : false);
     document.getElementById('tradeButton').disabled = (button === 'trade' ? true : false);
     document.getElementById('chatButton').disabled = (button === 'chat' ? true : false);
 }
 
-function showInfo() {
-    setActiveButton('info');
+function showBuild() {
+    setActiveButton('build');
     document.getElementById('actions').style.removeProperty('display');
     document.getElementById('chatInput').style.display = 'none';
     let content = document.getElementById('sideContent');
@@ -596,25 +732,86 @@ function showInfo() {
         playerTitle.style.color = player.color;
         playerTitle.style.fontWeight = 'bold';
         let playerPoints = document.createElement('span');
-        playerPoints.textContent = ` (${player.points})`;
+        playerPoints.textContent = ` (${player.points}`;
+        if (player.developments['victoryPoint'] > 0) {
+            playerPoints.textContent += (` + ${player.developments['victoryPoint']}`);
+        }
+        playerPoints.textContent += ')';
         playerTitle.appendChild(playerPoints);
         content.appendChild(playerTitle);
-        let playerResources = document.createElement('h3');
-        playerResources.textContent = 'Resources:';
-        content.appendChild(playerResources);
+        let resourcesHeading = document.createElement('h3');
+        resourcesHeading.textContent = 'Resources:';
+        content.appendChild(resourcesHeading);
         if (player.name === playerName) {
             let resources = document.createElement('ul');
             for (let resource in player.resources) {
                 resources.appendChild(document.createElement('li')).textContent = `${resource.charAt(0).toUpperCase() + resource.slice(1)}: ${player.resources[resource]}`;
             }
             content.appendChild(resources);
+            let actionButtons = document.getElementById('actions').getElementsByTagName('button');
+            for (let button of actionButtons) {
+                if (button.id === 'settlementButton') {
+                    button.disabled = player.resources["brick"] < 1 || player.resources["lumber"] < 1 || player.resources["wool"] < 1 || player.resources["grain"] < 1;
+                    button.textContent = `SETTLEMENT (${player.buildings["settlements"]})`;
+                }
+                else if (button.id === 'cityButton') {
+                    button.disabled = (player.resources["grain"] < 2 || player.resources["ore"] < 3);
+                    button.textContent = `CITY (${player.buildings["cities"]})`;
+                }
+                else if (button.id === 'roadButton') {
+                    button.disabled = player.resources["brick"] < 1 || player.resources["lumber"] < 1;
+                    button.textContent = `ROAD (${player.buildings["roads"]})`;
+                }
+                else if (button.id === 'developButton') {
+                    button.disabled = player.resources["grain"] < 1 || player.resources["wool"] < 1 || player.resources["ore"] < 1;
+                }
+            }
         }
         else {
-            playerResources.textContent += ` ${Object.values(player.resources).reduce((a, b) => a + b)}`;
+            resourcesHeading.textContent += ` ${Object.values(player.resources).reduce((a, b) => a + b)}`;
         }
-        let developments = document.createElement('h3');
-        developments.textContent = `Developments: 0`;
-        content.appendChild(developments);
+        let developmentsHeading = document.createElement('h3');
+        developmentsHeading.textContent = `Developments: ${Object.values(player.developments).reduce((a, b) => a + b)}`;
+        content.appendChild(developmentsHeading);
+        content.appendChild(document.createElement('br'));
+        if (player.name === playerName) {
+            let developments = document.getElementById('developments');
+            developments.innerHTML = '';
+            const capitalize = (string) => {
+                for (let i = 0; i < string.length; i++) {
+                    if (string.charAt(i) === string.charAt(i).toUpperCase()) {
+                        string = string.slice(0, i) + ' ' + string.charAt(i).toLowerCase() + string.slice(i + 1);
+                    }
+                }
+                return string.toUpperCase();
+            }
+            for (let i = 0; i < Object.keys(player.developments).length; i++) {
+                if (player.developments[Object.keys(player.developments)[i]] > 0
+                        && Object.keys(player.developments)[i] !== 'victoryPoint') {
+                    let developmentButton = document.createElement('button');
+                    developmentButton.classList.add('developmentButton');
+                    developmentButton.id = `${Object.keys(player.developments)[i]}Button`;
+                    developmentButton.textContent = `${capitalize(Object.keys(player.developments)[i])} (${player.developments[Object.keys(player.developments)[i]]})`;
+                    if (developmentButton.id === 'knightButton') {
+                        developmentButton.addEventListener('click', () => {
+                            new Notification('Move the robber', false, 0);
+                        });
+                    }
+                    else if (developmentButton.id === 'yearOfPlentyButton') {
+                        developmentButton.addEventListener('click', () => {
+                            new yearOfPlenty();
+                        });
+                    }
+                    else if (developmentButton.id === 'monopolyButton') {
+                        developmentButton.addEventListener('click', () => {
+                            new monopoly();
+                        });
+                    }
+                    developments.appendChild(developmentButton);
+                }
+            }
+        }
+
         content.appendChild(document.createElement('br'));
     }
 }
@@ -627,98 +824,23 @@ function showTrade() {
     content.innerHTML = '';
     content.style.textAlign = 'center';
 
-    let you = {
-        "brick": 0,
-        "lumber": 0,
-        "wool": 0,
-        "grain": 0,
-        "ore": 0
-    }
-    let them = {
-        "brick": 0,
-        "lumber": 0,
-        "wool": 0,
-        "grain": 0,
-        "ore": 0
-    }
-    let resources = ['brick', 'lumber', 'wool', 'grain', 'ore'];
-    let playerResources = players.find(player => player.name === playerName).resources;
-    for (let i = 0; i < 2; i++) {
+    let youResourceInput = new resourceInput(playerResources);
+    content.appendChild(youResourceInput.input);
+    
+    let downArrow = document.createElement('h2');
+    downArrow.textContent = '↓';
+    downArrow.style.color = '#E0E0E0';
+    content.appendChild(downArrow);
 
-        for (let resource of resources) {
-            let resourceDiv = document.createElement('div');
-            resourceDiv.style.display = 'flex';
-            resourceDiv.style.alignItems = 'center';
-            resourceDiv.style.justifyContent = 'space-between';
+    let themResourceInput = new resourceInput();
+    content.appendChild(themResourceInput.input);
 
-            let resourceHeading = document.createElement('h3');
-            resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + (i === 0 ? you[resource] : them[resource]);
-            resourceDiv.appendChild(resourceHeading);
-
-            let resourceButtons = document.createElement('div');
-            resourceButtons.style.display = 'flex';
-
-            let minusButton = document.createElement('button');
-            minusButton.classList.add('smallButton');
-            minusButton.textContent = '-';
-            minusButton.disabled = true;
-            minusButton.addEventListener('click', () => {
-                if (i === 0) {
-                    you[resource]--;
-                    minusButton.disabled = you[resource] === 0;
-                    plusButton.disabled = you[resource] === playerResources[resource];
-                }
-                else {
-                    them[resource]--;
-                    minusButton.disabled = them[resource] === 0;
-                }
-                resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + (i === 0 ? you[resource] : them[resource]);
-            });
-            resourceButtons.appendChild(minusButton);
-
-            let plusButton = document.createElement('button');
-            plusButton.classList.add('smallButton');
-            plusButton.textContent = '+';
-            plusButton.disabled = false;
-            plusButton.addEventListener('click', () => {
-                if (i === 0) {
-                    you[resource]++;
-                    minusButton.disabled = you[resource] === 0;
-                    plusButton.disabled = you[resource] === playerResources[resource];
-                }
-                else {
-                    them[resource]++;
-                    minusButton.disabled = them[resource] === 0;
-                }
-                resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + (i === 0 ? you[resource] : them[resource]);
-            });
-            resourceButtons.appendChild(plusButton);
-
-            resourceDiv.appendChild(resourceButtons);
-            content.appendChild(resourceDiv);
-        }
-        if (i === 0) {
-            let downArrow = document.createElement('h2');
-            downArrow.textContent = '↓';
-            downArrow.style.color = '#E0E0E0';
-            content.appendChild(downArrow);
-        }
-    }
     offerButton = document.createElement('button');
     offerButton.textContent = 'OFFER';
 
-    const removeZeroes = (obj) => {
-        for (let key in obj) {
-            if (obj[key] === 0) {
-                delete obj[key];
-            }
-        }
-        return obj;
-    }
-
     offerButton.addEventListener('click', () => {
-        you = removeZeroes(you);
-        them = removeZeroes(them);
+        you = removeZeroes(youResourceInput.resources);
+        them = removeZeroes(themResourceInput.resources);
         if (Object.keys(you).length === 0 || Object.keys(them).length === 0) {
             new Notification('Trade offer must include at least one resource from each player', true);
         }
@@ -728,13 +850,6 @@ function showTrade() {
         }
         else {
             ws.send(`trade offer ${playerName} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
-            you = {
-                "brick": 0,
-                "lumber": 0,
-                "wool": 0,
-                "grain": 0,
-                "ore": 0
-            }
         }
         showTrade();
     });

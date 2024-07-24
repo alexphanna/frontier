@@ -26,7 +26,8 @@
             <br>
             <div id="players" style="margin: 0px 10px;"></div>
             <br>
-            <button id="readyButton" onclick="ready()" style="position: absolute; bottom: 0px; right: 0px">READY</button>
+            <button id="readyButton" onclick="ready()"
+                style="position: absolute; bottom: 0px; right: 0px">READY</button>
         </div>
     </div>
     <div id="game" style="visibility: hidden;">
@@ -34,21 +35,30 @@
         <div id="notifications"></div>
         <div id="sidebar" class="interface">
             <div class="nav">
-                <button id="infoButton" class="navButton" onclick="showInfo()" style="border-right: 1px solid #80808080;">INFO</button>
-                <button id="tradeButton" class="navButton" onclick="showTrade()" style="border-left: 1px solid #80808080; border-right: 1px solid #80808080;">TRADE</button>
-                <button id="chatButton" class="navButton" onclick="showChat()" style="border-left: 1px solid #80808080;">CHAT</button>
+                <button id="buildButton" class="navButton" onclick="showBuild()"
+                    style="border-right: 1px solid #80808080;">BUILD</button>
+                <button id="tradeButton" class="navButton" onclick="showTrade()"
+                    style="border-left: 1px solid #80808080; border-right: 1px solid #80808080;">TRADE</button>
+                <button id="chatButton" class="navButton" onclick="showChat()"
+                    style="border-left: 1px solid #80808080;">CHAT</button>
             </div>
             <div id="sideContent" class="content"></div>
             <div id="actions" style="visibility: hidden;">
+                <div id="developments"></div>
                 <div class="actionNav">
-                    <button id="settlementButton" class="actionButton" onclick="build('settlement')" style="width: 150px; border-right: 1px solid #80808080; border-bottom: 1px solid #80808080;">SETTLEMENT</button>
-                    <button id="cityButton" class="actionButton" onclick="build('city')" style="width: 150px; border-left: 1px solid #80808080; border-bottom: 1px solid #80808080;">CITY</button>
+                    <button id="settlementButton" class="actionButton" onclick="build('settlement')"
+                        style="width: 150px; border-right: 1px solid #80808080; border-bottom: 1px solid #80808080;">SETTLEMENT</button>
+                    <button id="cityButton" class="actionButton" onclick="build('city')"
+                        style="width: 150px; border-left: 1px solid #80808080; border-bottom: 1px solid #80808080;">CITY</button>
                 </div>
                 <div class="actionNav">
-                    <button id="settlementButton" class="actionButton" onclick="build('road')" style="width: 150px; border-right: 1px solid #80808080; border-top: 1px solid #80808080; border-bottom: 1px solid #80808080;">ROAD</button>
-                    <button id="cityButton" class="actionButton" onclick="" style="width: 150px; border-left: 1px solid #80808080; border-top: 1px solid #80808080; border-bottom: 1px solid #80808080;">DEVELOP</button>
+                    <button id="roadButton" class="actionButton" onclick="build('road')"
+                        style="width: 150px; border-right: 1px solid #80808080; border-top: 1px solid #80808080; border-bottom: 1px solid #80808080;">ROAD</button>
+                    <button id="developButton" class="actionButton" onclick="develop()"
+                        style="width: 150px; border-left: 1px solid #80808080; border-top: 1px solid #80808080; border-bottom: 1px solid #80808080;">DEVELOP</button>
                 </div>
-                <button id="endTurnButton" class="actionButton" onclick="endTurn()" style="width: 300px; border-top: 1px solid #80808080;">END TURN</button>
+                <button id="endTurnButton" class="actionButton" onclick="endTurn()"
+                    style="width: 300px; border-top: 1px solid #80808080;">END TURN</button>
             </div>
             <input id="chatInput" placeholder="Type a message..."></input>
         </div>

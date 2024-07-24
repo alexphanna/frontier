@@ -27,7 +27,8 @@ rect {
 }
 
 text {
-    font-family: Arial, Helvetica, sans-serif; /* Jost doesn't center properly fix later */
+    font-family: Arial, Helvetica, sans-serif;
+    /* Jost doesn't center properly fix later */
     text-anchor: middle;
     dominant-baseline: middle;
 }
@@ -60,14 +61,17 @@ ul li {
     border: none;
     margin: 0px;
 }
+
 .navButton:disabled {
     cursor: default;
     background-color: #00000000;
+    color: white;
 }
 
 .actionNav {
     display: flex;
 }
+
 .actionButton {
     display: flex;
     justify-content: center;
@@ -151,9 +155,10 @@ div#menu {
 button,
 input {
     padding: 15px 15px;
-    font-size: 16px;
+    font-size: 14px;
     border: none;
 }
+
 input {
     color: black;
 }
@@ -167,9 +172,11 @@ input#chatInput {
     background-color: #00000000;
     min-height: fit-content;
 }
+
 input#chatInput:focus {
     outline: none;
 }
+
 input#chatInput::placeholder {
     color: #808080;
 }
@@ -181,14 +188,16 @@ button {
     background-color: #20202080;
     color: white;
 }
+
 button:hover {
     background-color: #ffffffC0;
     color: black;
 }
+
 button:disabled {
-    cursor: not-allowed;
-    background-color: #80808080;
-    color: white;
+    cursor: default;
+    background-color: #00000000;
+    color: #C0C0C080;
 }
 
 .smallButton {
@@ -203,7 +212,15 @@ button:disabled {
     margin: 0px;
     background-color: #00000000;
 }
+
 .smallButton:disabled {
     background-color: #00000000;
     color: #80808080
+}
+
+.developmentButton {
+    width: 300px;
+    margin: 0px;
+    background-color: #00000000;
+    border-bottom: 2px solid #80808080;
 }
