@@ -1,6 +1,6 @@
 # Catan
 ## Abstract
-Catan in JavaScript
+Catan in HTML, JavaScript and CSS
 
 ## Features
 - [x] Random map generation
@@ -15,16 +15,22 @@ Catan in JavaScript
 - [ ] User interface
     - [x] Glassmorphism
     - [x] Display current players and their color
-    - [ ] Display development cards
+    - [x] Display development cards
     - [x] Display resources
     - [ ] Color picker (maybe just options not every color)
 - [ ] Support for more than 4 players
-- [ ] Harbors
+- [ ] Harbors!
 - [ ] Development cards
+    - [ ] Knight!
+    - [ ] Road building!
+    - [x] Monopoly
+    - [x] Year of plenty
+    - [x] Victory point
 - [x] Robber
 - [x] Better server-client communication language
 - [ ] Complete server-side validation w/ errors and stuff
-- [ ] Longest road
+- [ ] Longest road!
+- [ ] Largest army!
 - [x] Map zooming and moving
 - [ ] Game settings and client settings
 - [x] Sound effects when place buildings and stuff

@@ -22,22 +22,22 @@ class Map {
         }
 
         let tiles = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        tiles.setAttribute("id", "tiles");
+        tiles.id = "tiles";
         svg.appendChild(tiles);
 
         let roads = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        roads.setAttribute("id", "roads");
+        roads.id = "roads";
         svg.appendChild(roads);
 
         // edge = { x, y, θ }
         this.edges = [];
         let edges = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        edges.setAttribute("id", "edges");
+        edges.id = "edges";
         svg.appendChild(edges);
-        edges.setAttribute("visibility", "hidden");
+        edges.style.visibility = "hidden";
 
         let buildings = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        buildings.setAttribute("id", "buildings");
+        buildings.id = "buildings";
         svg.appendChild(buildings);
 
         for (let i = 0; i < this.terrainMap.length; i++) {
@@ -53,15 +53,15 @@ class Map {
         // vertex = { x, y }
         this.settlementVertices = [];
         let settlementVertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        settlementVertices.setAttribute("id", "settlementVertices");
+        settlementVertices.id = "settlementVertices";
         svg.appendChild(settlementVertices);
-        settlementVertices.setAttribute("visibility", "hidden");
+        settlementVertices.style.visibility = "hidden";
 
         this.cityVertices = [];
         let cityVertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        cityVertices.setAttribute("id", "cityVertices");
+        cityVertices.id = "cityVertices";
         svg.appendChild(cityVertices);
-        cityVertices.setAttribute("visibility", "hidden");
+        cityVertices.style.visibility = "hidden";
 
         this.robber = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         this.robber.setAttribute("r", (this.inradius * 2) / 5);
@@ -97,45 +97,27 @@ class Map {
     vertexToStandard(x, y) {
         let row = Math.floor((y - this.topMargin) / (this.circumradius * 2 - (this.circumradius * 2 - this.sideLength) / 2));
 
-        if (row < 2) {
-            var col = Math.floor((x - this.inradius * ((this.terrainMap[row].length / 2) - row)) / this.inradius);
-        }
-        else if (row > 3) {
-            var col = Math.floor((x + this.inradius * (this.terrainMap[row].length - row)) / this.inradius);
-        }
-        else {
-            var col = x / this.inradius;
-        }
+        if (row < 2) var col = Math.floor((x - this.inradius * ((this.terrainMap[row].length / 2) - row)) / this.inradius);
+        else if (row > 3) var col = Math.floor((x + this.inradius * (this.terrainMap[row].length - row)) / this.inradius);
+        else var col = x / this.inradius;
 
         return { row, col };
     }
     standardToVertex(row, col) {
-        if (row <= 2) {
-            var y = row * ((this.circumradius * 2 - this.sideLength) / 2 + this.sideLength) + this.topMargin + ((1 - col % 2) * ((this.circumradius * 2 - this.sideLength) / 2));
-        }
-        else {
-            var y = row * ((this.circumradius * 2 - this.sideLength) / 2 + this.sideLength) + this.topMargin + ((col % 2) * ((this.circumradius * 2 - this.sideLength) / 2));
-        }
-        if (row < 2) {
-            var x = col * this.inradius + this.inradius * (5 - this.terrainMap[row].length) + this.leftMargin;
-        }
-        else if (row > 3) {
-            var x = col * this.inradius + this.inradius * (5 - this.terrainMap[row - 1].length) + this.leftMargin;
-        }
-        else {
-            var x = col * this.inradius;
-        }
+        if (row <= 2) var y = row * ((this.circumradius * 2 - this.sideLength) / 2 + this.sideLength) + this.topMargin + ((1 - col % 2) * ((this.circumradius * 2 - this.sideLength) / 2));
+        else var y = row * ((this.circumradius * 2 - this.sideLength) / 2 + this.sideLength) + this.topMargin + ((col % 2) * ((this.circumradius * 2 - this.sideLength) / 2));
+
+        if (row < 2) var x = col * this.inradius + this.inradius * (5 - this.terrainMap[row].length) + this.leftMargin;
+        else if (row > 3) var x = col * this.inradius + this.inradius * (5 - this.terrainMap[row - 1].length) + this.leftMargin;
+        else var x = col * this.inradius;
 
         return { x, y };
     }
     edgeToStandard(x, y) {
-        var row = Math.floor((y - this.topMargin) / ((this.circumradius * 2 - this.sideLength) / 2 + this.sideLength) * 2);
-        if (row % 2 == 0) {
-            var col = (x - this.leftMargin - this.inradius / 2 - this.inradius * (5 - this.terrainMap[(row < 5 ? row : row - 2) / 2].length)) / this.inradius;
-        }
-        else {
-            var col = (x - this.leftMargin - this.inradius * (5 - this.terrainMap[Math.floor(row / 2)].length)) / (this.inradius * 2);
-        }
+        let row = Math.floor((y - this.topMargin) / ((this.circumradius * 2 - this.sideLength) / 2 + this.sideLength) * 2);
+
+        if (row % 2 == 0)  var col = (x - this.leftMargin - this.inradius / 2 - this.inradius * (5 - this.terrainMap[(row < 5 ? row : row - 2) / 2].length)) / this.inradius;
+        else var col = (x - this.leftMargin - this.inradius * (5 - this.terrainMap[Math.floor(row / 2)].length)) / (this.inradius * 2);
 
         return { row, col };
     }
@@ -150,6 +132,7 @@ class Map {
             var y = Math.floor(row / 2) * (this.circumradius + this.sideLength / 2) + this.topMargin + this.circumradius;
             var angle = 90;
         }
+
         return { x, y, angle };
     }
 }
@@ -169,15 +152,13 @@ class Building {
 
     static createRoad(x, y, angle, fill, stroke) {
         let road = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        road.class = "road";
-        road.setAttribute("fill", fill);
-        road.setAttribute("width", "8");
-        road.setAttribute("height", "2");
+        road.classList.add("road");
+        road.setAttribute("fill", fill)
         road.setAttribute("stroke", stroke);
-        road.setAttribute("stroke-width", ".5");
-        road.setAttribute("x", x - road.getAttribute("width") / 2);
-        road.setAttribute("y", y - road.getAttribute("height") / 2);
+        road.setAttribute("x", x - 4);
+        road.setAttribute("y", y - 1);
         road.setAttribute("transform", `rotate(${angle})`);
+
         return road;
     }
 
@@ -186,8 +167,8 @@ class Building {
         building.setAttribute("class", type);
         building.setAttribute("fill", fill);
         building.setAttribute("stroke", stroke);
-        building.setAttribute("stroke-width", ".5");
         building.setAttribute("points", Building.pointToShape(x, y, type));
+
         return building;
     }
 
@@ -198,21 +179,23 @@ class Building {
             let coords = oldShape[i].split(",");
             shape += `${parseFloat(coords[0]) + x - Building.widths[type]},${parseFloat(coords[1]) + y - Building.heights[type]} `;
         }
+
         return shape;
     }
     static shapeToPoint(shape, type) {
         let x = parseFloat(String(shape).split(" ")[0].split(",")[0]) + Building.widths[type];
         let y = parseFloat(String(shape).split(" ")[0].split(",")[1]) + Building.heights[type];
+
         return { x, y };
     }
 }
 
 function createTile(x, y, width, terrain, number) {
     let tile = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    tile.setAttribute("id", `${terrain} ${number}`);
+    tile.id = `${terrain} ${number}`;
     tile.setAttribute("class", "tile")
     let hexagon = createHexagon(x, y, width);
-    hexagon.setAttribute("id", "hexagon")
+    hexagon.classList.add("hexagon");
     switch (terrain) {
         case "Hills":
             hexagon.setAttribute("fill", "#800000");
@@ -284,23 +267,22 @@ function move(svg, left, top) {
 function build(type) {
     let svg = document.getElementById('map');
     currentType = type;
-    svg.getElementById('settlementVertices').setAttribute("visibility", "hidden");
-    svg.getElementById('cityVertices').setAttribute("visibility", "hidden");
-    svg.getElementById('edges').setAttribute("visibility", "hidden");
+    svg.getElementById('settlementVertices').style.visibility = "hidden";
+    svg.getElementById('cityVertices').style.visibility = "hidden";
+    svg.getElementById('edges').style.visibility = "hidden";
     if (type == "settlement") {
-        svg.getElementById('settlementVertices').setAttribute("visibility", "visible");
+        svg.getElementById('settlementVertices').style.visibility = "visible";
     }
     else if (type == "city") {
-        svg.getElementById('cityVertices').setAttribute("visibility", "visible");
+        svg.getElementById('cityVertices').style.visibility = "visible";
     }
     else {
-        svg.getElementById('edges').setAttribute("visibility", "visible");
+        svg.getElementById('edges').style.visibility = "visible";
     }
 }
 
 function develop() {
     ws.send('develop');
-    
 }
 
 function updateLobby(players) {
@@ -324,15 +306,15 @@ function endTurn() {
 function ready() {
     ws.send('ready');
     readyButton = document.getElementById('readyButton');
-    readyButton.textContent = 'Unready';
-    readyButton.setAttribute('onclick', 'unready()');
+    readyButton.textContent = 'UNREADY';
+    readyButton.onclick = unready;
 }
 
 function unready() {
     ws.send('unready');
     readyButton = document.getElementById('readyButton');
-    readyButton.textContent = 'Ready';
-    readyButton.setAttribute('onclick', 'ready()');
+    readyButton.textContent = 'READY';
+    readyButton.onclick = ready;
 }
 
 const createButton = (text) => {
@@ -343,7 +325,7 @@ const createButton = (text) => {
 };
 
 class Notification {
-    constructor(message, isError = false, duration = 3000) {
+    constructor(message, isError = false, duration = 5000) {
         let notification = document.createElement('div');
         notification.classList.add('interface', 'notification');
 
@@ -368,7 +350,18 @@ class Notification {
             notification.appendChild(buttons);
         } else {
             notification.style.textAlign = 'center';
-            setTimeout(removeNotification, duration);
+            let countdown = document.createElement('div');
+            countdown.classList.add('countdown');
+            let elapsedTime = 0;
+            notification.appendChild(countdown);
+            let interval = setInterval(() => {
+                elapsedTime += 10;
+                countdown.style.width = `${((duration - elapsedTime) / duration) * 100}%`;
+                if (elapsedTime >= duration) {
+                    removeNotification();
+                    clearInterval(interval);
+                }
+            }, 10);
         }
     }
 }
@@ -486,7 +479,7 @@ class resourceInput {
                     for (let button of this.input.getElementsByClassName('plusButton')) {
                         button.disabled = Object.values(this.resources).reduce((a, b) => a + b) === limit;
                     }
-                }    
+                }
                 else if (limits != {}) {
                     plusButton.disabled = this.resources[resource] === limits[resource];
                 }
@@ -526,11 +519,13 @@ class yearOfPlenty {
         selector.input.style.margin = '10px';
         yearOfPlenty.appendChild(selector.input);
 
+
         let confirmButton = createButton('CONFIRM');
         confirmButton.addEventListener('click', () => {
             ws.send(`progress yearOfPlenty ${JSON.stringify(removeZeroes(selector.resources))}`);
             notifications.removeChild(yearOfPlenty);
         });
+
         yearOfPlenty.appendChild(confirmButton);
     }
 }
@@ -584,7 +579,6 @@ function join() {
 
         if (args[0] === 'players') {
             players = JSON.parse(args[1]);
-            playerResources = players.find(player => player.name === playerName).resources;
             updateLobby(players);
             if (document.getElementById('buildButton').disabled) {
                 showBuild();
@@ -632,17 +626,14 @@ function join() {
         else if (args[0] === 'robber') {
             map.moveRobber(parseInt(args[1]), parseInt(args[2]));
         }
-        else if (args[0] === 'chat') {
-            chat.push([args[1], args.slice(2).join(' ')]);
+        else if (args[0] === 'chat' || args[0] === 'log') {
+            chat.push(args[0] === 'chat' ? [args[1], args.slice(2).join(' ')] : [args.slice(1).join(' ')]);
             if (document.getElementById('chatButton').disabled) {
                 showChat();
             }
         }
-        else if (args[0] === 'log') {
-            chat.push([args.slice(1).join(' ')]);
-            if (document.getElementById('chatButton').disabled) {
-                showChat();
-            }
+        else if (args[0] === 'error') {
+            new Notification(args.slice(1).join(' '), true);
         }
         else if (args[0] === 'start') {
             if (args[1] === 'game') {
@@ -668,7 +659,7 @@ function join() {
                         const vertex = map.standardToVertex(i, j);
                         let settlement = Building.createBuilding(vertex.x, vertex.y, "transparent", "#ffffffc0", "settlement");
                         settlement.addEventListener('click', function () {
-                            vertices.setAttribute("visibility", "hidden");
+                            vertices.style.visibility = "hidden";
                             ws.send(`build ${currentType} ${i} ${j} ${color}`);
                         });
                         settlement.addEventListener('mouseover', function () {
@@ -693,7 +684,7 @@ function join() {
 
                         let road = Building.createRoad(edge.x, edge.y, edge.angle, "transparent", "#ffffffc0");
                         road.addEventListener('click', function () {
-                            edges.setAttribute("visibility", "hidden");
+                            edges.style.visibility = "hidden";
                             ws.send(`build road ${i} ${j} ${edge.angle} ${color}`);
                         });
                         road.addEventListener('mouseover', function () {
@@ -768,10 +759,10 @@ function showBuild() {
             }
         }
         else {
-            resourcesHeading.textContent += ` ${Object.values(player.resources).reduce((a, b) => a + b)}`;
+            resourcesHeading.textContent += ` ${player.resources}`;
         }
         let developmentsHeading = document.createElement('h3');
-        developmentsHeading.textContent = `Developments: ${Object.values(player.developments).reduce((a, b) => a + b)}`;
+        developmentsHeading.textContent = `Developments: ${playerName === player.name ? Object.values(player.developments).reduce((a, b) => a + b) : player.developments}`;
         content.appendChild(developmentsHeading);
         content.appendChild(document.createElement('br'));
         if (player.name === playerName) {
@@ -787,7 +778,7 @@ function showBuild() {
             }
             for (let i = 0; i < Object.keys(player.developments).length; i++) {
                 if (player.developments[Object.keys(player.developments)[i]] > 0
-                        && Object.keys(player.developments)[i] !== 'victoryPoint') {
+                    && Object.keys(player.developments)[i] !== 'victoryPoint') {
                     let developmentButton = document.createElement('button');
                     developmentButton.classList.add('developmentButton');
                     developmentButton.id = `${Object.keys(player.developments)[i]}Button`;
@@ -824,9 +815,9 @@ function showTrade() {
     content.innerHTML = '';
     content.style.textAlign = 'center';
 
-    let youResourceInput = new resourceInput(playerResources);
+    let youResourceInput = new resourceInput(players.find(player => player.name === playerName).resources, 0);
     content.appendChild(youResourceInput.input);
-    
+
     let downArrow = document.createElement('h2');
     downArrow.textContent = '↓';
     downArrow.style.color = '#E0E0E0';
@@ -933,7 +924,7 @@ document.addEventListener('mousedown', function (event) {
 });
 let input = document.getElementById('chatInput');
 input.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && input.value !== '') {
         ws.send(`chat ${playerName} ${input.value}`);
         input.value = '';
     }

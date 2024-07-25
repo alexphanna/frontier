@@ -17,17 +17,26 @@ class Player {
             wool: 10
         };
         this.developments = {
-            knight: 2,
-            monopoly: 1,
-            yearOfPlenty: 1,
-            roadBuilding: 0,
-            victoryPoint: 3
+            knight: 1,
+            monopoly: 0,
+            yearOfPlenty: 0,
+            roadBuilding: 1,
+            victoryPoint: 0
         };
     }
     substractResources(resources) {
         for (const [key, value] of Object.entries(resources)) {
             this.resources[key] -= value;
         }
+    }
+}
+class publicPlayer {
+    constructor(player) {
+        this.name = player.name;
+        this.color = player.color;
+        this.points = player.points;
+        this.resources = Object.values(player.resources).reduce((a, b) => a + b, 0);
+        this.developments = Object.values(player.developments).reduce((a, b) => a + b, 0);
     }
 }
 
@@ -104,6 +113,11 @@ let resources = {
     "Pasture": "wool",
 }
 
+/**
+ * Generates a map.
+ * 
+ * @returns {Object} An object containing the generated terrain map and number map.
+ */
 function generateMap() {
     var terrainDistr = terrains.flatMap(terrain => Array(terrainCounts[terrain]).fill(terrain));
     var numberDistr = [2, 3, 3, 4, 4, 5, 5, 6, 6, 8, 8, 9, 9, 10, 10, 11, 11, 12];
@@ -129,6 +143,11 @@ function generateMap() {
     return { terrainMap, numberMap };
 }
 
+/**
+ * Shuffles an array in place using the Fisher-Yates algorithm.
+ * @param {Array} array - The array to be shuffled.
+ * @returns {Array} - The shuffled array.
+ */
 function shuffle(array) {
     let currentIndex = array.length;
 
@@ -142,6 +161,10 @@ function shuffle(array) {
     return array;
 }
 
+/**
+ * Broadcasts a message to all connected clients.
+ * @param {string} message - The message to be sent.
+ */
 function broadcast(message) {
     for (const client of clients) {
         client.send(message);
@@ -198,6 +221,10 @@ function broadcastPoints() {
     }
 }
 
+/**
+ * Logs a message and broadcasts it to all clients.
+ * @param {string} message - The message to be logged.
+ */
 function log(message) {
     broadcast(`log ${message}`);
 }
@@ -205,6 +232,7 @@ function log(message) {
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8080 });
 let players = new Set();
+let playerArray = Array.from(players);
 let clients = new Set();
 let ready = new Set();
 let colors = shuffle(["red", "orange", "yellow", "lime", "blue", "magenta"]);
@@ -227,6 +255,8 @@ let developmentDistr = {
     victoryPoint: 5
 }
 let developments = shuffle(Object.keys(developmentDistr).map(development => Array(developmentDistr[development]).fill(development)).flat());
+let builtSettlement = false;
+let builtRoad = false;
 
 let settlementVertices = [];
 let cityVertices = [];
@@ -265,6 +295,21 @@ for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
     edges.unshift(Array.from(temp2));
 }
 
+function broadcastPlayers() {
+    for (let i = 0; i < players.size; i++) {
+        const newPlayers = [];
+        for (let j = 0; j < playerArray.length; j++) {
+            if (j === i) {
+                newPlayers.push(playerArray[j]);
+            }
+            else {
+                newPlayers.push(new publicPlayer(playerArray[j]));
+            }
+        }
+        Array.from(clients)[i].send('players ' + JSON.stringify(newPlayers));
+    }
+}
+
 wss.on('connection', (ws) => {
     console.log('connected');
 
@@ -283,9 +328,10 @@ wss.on('connection', (ws) => {
         if (args[0] === 'add') {
             ws.send('color ' + colors[players.size]);
             players.add(new Player(args[1], colors[players.size]));
+            playerArray = Array.from(players);
             clients.add(ws);
             ws.send('map ' + JSON.stringify(map));
-            broadcast('players ' + JSON.stringify(Array.from(players)));
+            broadcastPlayers();
             broadcastPoints();
         }
         else if (args[0] === 'ready') {
@@ -319,7 +365,7 @@ wss.on('connection', (ws) => {
                     you.resources[key] = you.resources[key] + value;
                     them.resources[key] = them.resources[key] - value;
                 }
-                broadcast('players ' + JSON.stringify(Array.from(players)));
+                broadcastPlayers();
                 broadcast(`trade unoffer ${args[6]}`)
             }
         }
@@ -331,11 +377,10 @@ wss.on('connection', (ws) => {
             }
             player.developments[developments.shift()]++;
             player.substractResources(costs);
-            broadcast('players ' + JSON.stringify(Array.from(players)));
+            broadcastPlayers();
         }
         else if (args[0] === 'progress') {
             if (args[1] === 'monopoly') {
-                const playerArray = Array.from(players);
                 if (player.developments["monopoly"] > 0) {
                     player.developments["monopoly"]--;
                     for (let i = 0; i < playerArray.length; i++) {
@@ -348,7 +393,11 @@ wss.on('connection', (ws) => {
                 }
             }
             else if (args[1] === 'yearOfPlenty') {
-                // make sure that the player only sent 2 resources
+                let totalResources = Object.values(JSON.parse(args[2])).reduce((a, b) => a + b, 0);
+                if (totalResources != 2) {
+                    ws.send('error Must take 2 resources');
+                    return;
+                }
                 if (player.developments["yearOfPlenty"] > 0) {
                     player.developments["yearOfPlenty"]--;
                     let resources = JSON.parse(args[2]);
@@ -357,7 +406,7 @@ wss.on('connection', (ws) => {
                     }
                 }
             }
-            broadcast('players ' + JSON.stringify(Array.from(players)));
+            broadcastPlayers();
         }
         else if (args[0] === 'build') {
             const row = parseInt(args[2]);
@@ -399,9 +448,11 @@ wss.on('connection', (ws) => {
                 }
                 else if (turn >= players.size * 2 && settlementVertices[row][col] == turn % players.size) {
                     if (player.resources["brick"] < 1 || player.resources["grain"] < 1 || player.resources["lumber"] < 1 || player.resources["wool"] < 1) {
+                        ws.send('error Insufficient resources');
                         return;
                     }
                     if (player.buildings["settlements"] == 0) {
+                        ws.send('error No settlements left');
                         return;
                     }
                     broadcast(String(message));
@@ -419,6 +470,14 @@ wss.on('connection', (ws) => {
                 }
             }
             else if (args[1] === 'city' && cityVertices[row][col] === turn % players.size && player.buildings["cities"] > 0) {
+                if (player.resources["grain"] < 2 || player.resources["ore"] < 3) {
+                    ws.send('error Insufficient resources');
+                    return;
+                }
+                if (player.buildings["cities"] == 0) {
+                    ws.send('error No cities left');
+                    return;
+                }
                 const costs = {
                     grain: 2,
                     ore: 3
@@ -434,6 +493,14 @@ wss.on('connection', (ws) => {
                 cityVertices[row][col] = NaN;
             }
             else if (args[1] === 'road' && player.buildings["roads"] > 0) {
+                if (player.resources["brick"] < 1 || player.resources["lumber"] < 1) {
+                    ws.send('error Insufficient resources');
+                    return;
+                }
+                if (player.buildings["roads"] == 0) {
+                    ws.send('error No roads left');
+                    return;
+                }
                 const costs = {
                     brick: 1,
                     lumber: 1
@@ -484,7 +551,7 @@ wss.on('connection', (ws) => {
             }
 
             broadcastPoints();
-            broadcast('players ' + JSON.stringify(Array.from(players)));
+            broadcastPlayers();
         }
         else if (args[0] === 'get') {
             if (args[1] === 'map') {
@@ -503,11 +570,17 @@ wss.on('connection', (ws) => {
             }
         }
         else if (args[0] === 'chat') {
+            // check if message is empty
+            if (args.slice(2).join(' ') === '') return;
+            // check if player exists
+            if (playerArray.find(player => player.name === args[1]) === undefined) return;
+
             broadcast(String(message));
         }
         else if (args[0] === 'end' && args[1] === 'turn') {
             turn++;
             if (turn < players.size * 2) {
+                // During this phase, players mus build 1 settlement and 1 road per turn
                 if (turn < players.size) {
                     Array.from(clients)[turn].send('start turn');
                 }
@@ -522,7 +595,6 @@ wss.on('connection', (ws) => {
                 broadcast('roll ' + roll);
 
                 // Simplified resource distribution
-                const playersArray = Array.from(players); // Convert players to array once
 
                 function updateResources(position, i, j, multiplier) {
                     if (!isNaN(position)) {
@@ -545,7 +617,7 @@ wss.on('connection', (ws) => {
                     }
                 }
 
-                broadcast('players ' + JSON.stringify(Array.from(players)));
+                broadcastPlayers();
                 broadcastPoints();
             }
         }
@@ -559,6 +631,6 @@ wss.on('connection', (ws) => {
                 clients.delete(ws);
             }
         }
-        broadcast('players ' + JSON.stringify(Array.from(players)));
+        broadcastPlayers();
     });
 });

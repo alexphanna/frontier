@@ -26,6 +26,17 @@ rect {
     transform-box: fill-box;
 }
 
+.settlement,
+.city,
+.road {
+    stroke-width: .5;
+}
+
+.road {
+    width: 8px;
+    height: 2px;
+}
+
 text {
     font-family: Arial, Helvetica, sans-serif;
     /* Jost doesn't center properly fix later */
@@ -37,6 +48,10 @@ ul li {
     margin-left: 10px;
     list-style-type: none;
     color: #e0e0e0;
+}
+
+h2 {
+    font-weight: bold;
 }
 
 .interface {
@@ -167,7 +182,7 @@ input#chatInput {
     color: white;
     width: 100%;
     margin: 0px;
-    font-size: 16px;
+    font-size: 14px;
     border-top: 2px solid #80808080;
     background-color: #00000000;
     min-height: fit-content;
@@ -223,4 +238,13 @@ button:disabled {
     margin: 0px;
     background-color: #00000000;
     border-bottom: 2px solid #80808080;
+}
+
+.countdown {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: white;
 }
