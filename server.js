@@ -29,6 +29,14 @@ class Player {
             this.resources[key] -= value;
         }
     }
+    hasResources(resources) {
+        for (const [key, value] of Object.entries(resources)) {
+            if (this.resources[key] < value) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 class publicPlayer {
     constructor(player) {
@@ -174,7 +182,7 @@ function broadcast(message) {
 function broadcastPoints() {
     for (let i = 0; i < players.size; i++) {
         const playerArray = Array.from(players);
-        if (turn >= players.size && turn < players.size * 2 && playerArray[i].prevVertex != null) {
+        if (turn >= players.size && round < 2 && playerArray[i].prevVertex != null) {
             var playerEdges = [];
             for (let j = 0; j < edges.length; j++) {
                 playerEdges.push([]);
@@ -207,7 +215,7 @@ function broadcastPoints() {
         for (let j = 0; j < settlementVertices.length; j++) {
             playerSettlementVertices.push([]);
             for (let k = 0; k < settlementVertices[j].length; k++) {
-                if (turn < players.size * 2) {
+                if (round < 2) {
                     playerSettlementVertices[j].push(isNaN(settlementVertices[j][k]));
                 }
                 else {
@@ -246,6 +254,7 @@ for (let i = 0; i < map.terrainMap.length; i++) {
     }
 }
 let turn = 0;
+let round = 0;
 let roll = 0;
 let developmentDistr = {
     knight: 14,
@@ -318,7 +327,7 @@ wss.on('connection', (ws) => {
 
         const args = String(message).split(' ');
 
-        if (turn >= players.size && turn < players.size * 2) {
+        if (round === 1) {
             var player = Array.from(players)[players.size - 1 - (turn % players.size)];
         }
         else {
@@ -351,7 +360,34 @@ wss.on('connection', (ws) => {
         }
         else if (args[0] === 'trade') {
             if (args[1] === 'offer') {
-                // check legality
+                // check if it is past the initial phase
+                // if (round < 2) return; UNCOMMENT LATER
+                // check if trade is legal
+                const you = JSON.parse(args[3]);
+                const them = JSON.parse(args[4]);
+                if (player.name !== args[2]) {
+                    ws.send('error You may only offer trades on your turn');
+                    return;
+                }
+                if (!player.hasResources(you)) {
+                    ws.send('error Insufficient resources');
+                    return;
+                }
+                if (Object.keys(you).length === 0 || Object.keys(them).length === 0) {
+                    ws.send('error You must include at least one resource from each player', true);
+                    return;
+                }
+                equal = false;
+                for (let key of Object.keys(you)) {
+                    if (key in them) {
+                        equal = true;
+                    }
+                }
+                if (equal) {
+                    ws.send('error You may not trade like resources (e.g., 2 brick → 1 brick)', true);
+                    return;
+                }
+
                 broadcast(String(message));
             }
             else if (args[1] === 'accept') {
@@ -370,10 +406,17 @@ wss.on('connection', (ws) => {
             }
         }
         else if (args[0] === 'develop') {
-            costs = {
+            const costs = {
                 grain: 1,
                 ore: 1,
                 wool: 1
+            }
+            // check if it is past the initial phase
+            if (round < 2) return;
+            // check if player has resources
+            if (!player.hasResources(costs)) {
+                ws.send('error Insufficient resources');
+                return;
             }
             player.developments[developments.shift()]++;
             player.substractResources(costs);
@@ -381,29 +424,36 @@ wss.on('connection', (ws) => {
         }
         else if (args[0] === 'progress') {
             if (args[1] === 'monopoly') {
-                if (player.developments["monopoly"] > 0) {
-                    player.developments["monopoly"]--;
-                    for (let i = 0; i < playerArray.length; i++) {
-                        if (i === turn % playerArray.length) {
-                            continue;
-                        }
-                        player.resources[args[2]] += playerArray[i].resources[args[2]];
-                        playerArray[i].resources[args[2]] = 0;
+                // check if player has monopoly card
+                if (player.developments["monopoly"] === 0) {
+                    ws.send('error No monopoly cards left');
+                    return;
+                }
+                player.developments["monopoly"]--;
+                for (let i = 0; i < playerArray.length; i++) {
+                    if (i === turn % playerArray.length) {
+                        continue;
                     }
+                    player.resources[args[2]] += playerArray[i].resources[args[2]];
+                    playerArray[i].resources[args[2]] = 0;
                 }
             }
             else if (args[1] === 'yearOfPlenty') {
+                // check if player has year of plenty card
+                if (player.developments["yearOfPlenty"] === 0) {
+                    ws.send('error No year of plenty cards left');
+                    return;
+                }
+                // check if player took 2 resources
                 let totalResources = Object.values(JSON.parse(args[2])).reduce((a, b) => a + b, 0);
                 if (totalResources != 2) {
                     ws.send('error Must take 2 resources');
                     return;
                 }
-                if (player.developments["yearOfPlenty"] > 0) {
-                    player.developments["yearOfPlenty"]--;
-                    let resources = JSON.parse(args[2]);
-                    for (let resource of Object.keys(resources)) {
-                        player.resources[resource] += resources[resource];
-                    }
+                player.developments["yearOfPlenty"]--;
+                let resources = JSON.parse(args[2]);
+                for (let resource of Object.keys(resources)) {
+                    player.resources[resource] += resources[resource];
                 }
             }
             broadcastPlayers();
@@ -411,22 +461,26 @@ wss.on('connection', (ws) => {
         else if (args[0] === 'build') {
             const row = parseInt(args[2]);
             const col = parseInt(args[3]);
-            if (args[1] === 'settlement' && player.buildings["settlements"] > 0) {
+            if (args[1] === 'settlement') {
                 const costs = {
                     brick: 1,
                     grain: 1,
                     lumber: 1,
                     wool: 1
                 }
-                if (turn < players.size * 2 && isNaN(settlementVertices[row][col])) {
-                    broadcast(String(message));
-                    log(player.name + ' built a settlement');
-                    player.points++;
-                    player.buildings["settlements"]--;
+
+                if (round < 2) {
+                    // check if settlement is legal
+                    if (!isNaN(settlementVertices[row][col])) {
+                        ws.send('error Illegal settlement placement');
+                        return;
+                    }
+                    // check if player already built a settlement this round
+                    if (round < 2 && player.buildings["settlements"] < 5 - round) {
+                        ws.send(`error You may only build one settlement during round ${["one", "two"][round]}`);
+                        return;
+                    }
                     player.prevVertex = [row, col];
-                    settlementVertices[row][col] = players.size;
-                    settlements[row][col] = turn % players.size;
-                    cityVertices[row][col] = turn % players.size;
 
                     let adjacentEdges = Vertex.adjacentEdges(row, col);
                     for (let j = 0; j < adjacentEdges.length; j++) {
@@ -441,47 +495,62 @@ wss.on('connection', (ws) => {
                         }
                     }
 
-                    const adjacentVertices = Vertex.adjacentVertices(row, col);
-                    for (let i = 0; i < adjacentVertices.length; i++) {
-                        settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size + 1;
-                    }
+                    // give player resources on round two
                 }
-                else if (turn >= players.size * 2 && settlementVertices[row][col] == turn % players.size) {
-                    if (player.resources["brick"] < 1 || player.resources["grain"] < 1 || player.resources["lumber"] < 1 || player.resources["wool"] < 1) {
+                else if (turn >= players.size * 2) {
+                    // check if player has resources
+                    if (!player.hasResources(costs)) {
                         ws.send('error Insufficient resources');
                         return;
                     }
+                    // check if player has settlements
                     if (player.buildings["settlements"] == 0) {
                         ws.send('error No settlements left');
                         return;
                     }
-                    broadcast(String(message));
-                    log(player.name + ' built a settlement');
-                    player.points++;
-                    player.substractResources(costs);
-                    settlementVertices[row][col] = players.size;
-                    settlements[row][col] = turn % players.size;
-                    cityVertices[row][col] = turn % players.size;
-
-                    const adjacentVertices = Vertex.adjacentVertices(row, col);
-                    for (let i = 0; i < adjacentVertices.length; i++) {
-                        settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size + 1;
+                    // check if settlement is legal
+                    if (settlementVertices[row][col] != turn % players.size) {
+                        ws.send('error Illegal settlement placement');
+                        return;
                     }
+                    player.substractResources(costs);
+                }
+                broadcast(String(message));
+                log(player.name + ' built a settlement');
+                player.points++;
+                player.buildings["settlements"]--;
+                settlementVertices[row][col] = players.size;
+                settlements[row][col] = turn % players.size;
+                cityVertices[row][col] = turn % players.size;
+
+                const adjacentVertices = Vertex.adjacentVertices(row, col);
+                for (let i = 0; i < adjacentVertices.length; i++) {
+                    settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size + 1;
                 }
             }
-            else if (args[1] === 'city' && cityVertices[row][col] === turn % players.size && player.buildings["cities"] > 0) {
-                if (player.resources["grain"] < 2 || player.resources["ore"] < 3) {
-                    ws.send('error Insufficient resources');
-                    return;
-                }
-                if (player.buildings["cities"] == 0) {
-                    ws.send('error No cities left');
-                    return;
-                }
+            else if (args[1] === 'city') {               
                 const costs = {
                     grain: 2,
                     ore: 3
                 }
+                // check if it is past the initial phase
+                if (round < 2) return;
+                // check if player has resources
+                if (!player.hasResources(costs)) {
+                    ws.send('error Insufficient resources');
+                    return;
+                }
+                // check if player has cities
+                if (player.buildings["cities"] == 0) {
+                    ws.send('error No cities left');
+                    return;
+                }
+                // check if city is legal
+                if (cityVertices[row][col] != turn % players.size) {
+                    ws.send('error Illegal city placement');
+                    return;
+                }
+
                 broadcast(String(message));
                 log(player.name + ' built a city');
                 player.points++;
@@ -492,27 +561,54 @@ wss.on('connection', (ws) => {
                 settlements[row][col] = NaN;
                 cityVertices[row][col] = NaN;
             }
-            else if (args[1] === 'road' && player.buildings["roads"] > 0) {
-                if (player.resources["brick"] < 1 || player.resources["lumber"] < 1) {
-                    ws.send('error Insufficient resources');
-                    return;
-                }
-                if (player.buildings["roads"] == 0) {
-                    ws.send('error No roads left');
-                    return;
-                }
+            else if (args[1] === 'road') {
                 const costs = {
                     brick: 1,
                     lumber: 1
                 }
+                // check if road is legal
+                if (round < 2) {
+                    if (player.buildings["settlements"] > 4 - round) {
+                        ws.send('error You must build a settlement first');
+                        return;
+                    }
+                    if (player.buildings["roads"] < 15 - round) {
+                        ws.send(`error You may only build one road during round ${["one", "two"][round]}`);
+                        return;
+                    }
+                }
+                if (round === 1) {
+                    let playerEdges = Vertex.adjacentEdges(player.prevVertex[0], player.prevVertex[1]);
+                    console.log(playerEdges);
+                    if (playerEdges.find(edge => edge[0] === row && edge[1] === col) === undefined) {
+                        ws.send('error Illegal road placement');
+                        return;
+                    }
+                }
+                else {
+                    if (edges[row][col] != turn % players.size) {
+                        ws.send('error Illegal road placement');
+                        return;
+                    }
+                }
+                if (turn >= players.size * 2) {
+                    // check if player has resources
+                    if (!player.hasResources(costs)) {
+                        ws.send('error Insufficient resources');
+                        return;
+                    }
+                    // check if player has roads
+                    if (player.buildings["roads"] == 0) {
+                        ws.send('error No roads left');
+                        return;
+                    }
 
-                // Re-add server-side validation
+                    player.substractResources(costs);
+                }
+
                 broadcast(String(message));
                 log(player.name + ' built a road');
                 player.buildings["roads"]--;
-                if (turn >= players.size * 2) {
-                    player.substractResources(costs);
-                }
                 edges[row][col] = players.size;
 
                 const adjacentVertices = Edge.adjacentVertices(row, col);
@@ -520,7 +616,7 @@ wss.on('connection', (ws) => {
                     const adjacentEdges = Vertex.adjacentEdges(adjacentVertices[i][0], adjacentVertices[i][1]);
                     for (let j = 0; j < adjacentEdges.length; j++) {
                         if (isNaN(edges[adjacentEdges[j][0]][adjacentEdges[j][1]])) {
-                            if (turn >= players.size && turn < players.size * 2) {
+                            if (round === 1) {
                                 edges[adjacentEdges[j][0]][adjacentEdges[j][1]] = players.size - 1 - (turn % players.size)
                             }
                             else {
@@ -539,7 +635,7 @@ wss.on('connection', (ws) => {
                         }
                     }
                     if (available) {
-                        if (turn >= players.size && turn < players.size * 2) {
+                        if (round === 1) {
                             settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size - 1 - (turn % players.size)
                         }
                         else {
@@ -578,25 +674,30 @@ wss.on('connection', (ws) => {
             broadcast(String(message));
         }
         else if (args[0] === 'end' && args[1] === 'turn') {
-            turn++;
-            if (turn < players.size * 2) {
-                // During this phase, players mus build 1 settlement and 1 road per turn
-                if (turn < players.size) {
-                    Array.from(clients)[turn].send('start turn');
+            if (round < 2) {
+                if (player.buildings["settlements"] > 4 - round) {
+                    ws.send(`error You must build a settlement and a road during round ${["one", "two"][round]}`);
+                }
+                else if (player.buildings["roads"] > 14 - round) {
+                    ws.send(`error You must build a road during round ${["one", "two"][round]}`);
                 }
                 else {
-                    Array.from(clients)[players.size - 1 - (turn % players.size)].send('start turn');
+                    turn++;
+                    round = Math.floor(turn / players.size);
                 }
+
+                Array.from(clients)[round === 0 ? turn : players.size - 1 - (turn % players.size)].send('start turn');
             }
             if (turn >= players.size * 2) {
+                turn++;
+                round = Math.floor(turn / players.size);
                 // roll dice
                 Array.from(clients)[turn % players.size].send('start turn');
                 roll = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
                 broadcast('roll ' + roll);
-
-                // Simplified resource distribution
-
+                
                 function updateResources(position, i, j, multiplier) {
+                    const playersArray = Array.from(players);
                     if (!isNaN(position)) {
                         const player = playersArray[position];
                         player.resources[resources[map.terrainMap[i][j]]] += 1 * multiplier;

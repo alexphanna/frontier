@@ -28,10 +28,12 @@ Catan in HTML, JavaScript and CSS
     - [x] Victory point
 - [x] Robber
 - [x] Better server-client communication language
-- [ ] Complete server-side validation w/ errors and stuff
+- [x] Complete server-side validation w/ errors and stuff
 - [ ] Longest road!
 - [ ] Largest army!
 - [x] Map zooming and moving
 - [ ] Game settings and client settings
 - [x] Sound effects when place buildings and stuff
 - [x] Trading
+- [ ] Maritime trade
+- [ ] Counter offering

@@ -832,16 +832,7 @@ function showTrade() {
     offerButton.addEventListener('click', () => {
         you = removeZeroes(youResourceInput.resources);
         them = removeZeroes(themResourceInput.resources);
-        if (Object.keys(you).length === 0 || Object.keys(them).length === 0) {
-            new Notification('Trade offer must include at least one resource from each player', true);
-        }
-        else if (you == them) {
-            // does not work, need more robust comparison
-            new Notification('Trade offer cannot be a one-to-one trade', true);
-        }
-        else {
-            ws.send(`trade offer ${playerName} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
-        }
+        ws.send(`trade offer ${playerName} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
         showTrade();
     });
     content.appendChild(offerButton);
