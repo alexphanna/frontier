@@ -2,6 +2,8 @@
 ## Abstract
 Catan in HTML, JavaScript and CSS
 
+<img src="screenshot.png" />
+
 ## Features
 - [x] Random map generation
 - [x] Grid-snapping buildings (Settlements, cities, and roads)
