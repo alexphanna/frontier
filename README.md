@@ -20,9 +20,9 @@ Catan in HTML, JavaScript and CSS
     - [ ] Color picker (maybe just options not every color)
 - [ ] Support for more than 4 players
 - [ ] Harbors!
-- [ ] Development cards
-    - [ ] Knight!
-    - [ ] Road building!
+- [x] Development cards
+    - [x] Knight
+    - [x] Road building
     - [x] Monopoly
     - [x] Year of plenty
     - [x] Victory point
@@ -30,10 +30,9 @@ Catan in HTML, JavaScript and CSS
 - [x] Better server-client communication language
 - [x] Complete server-side validation w/ errors and stuff
 - [ ] Longest road!
-- [ ] Largest army!
+- [x] Largest army
 - [x] Map zooming and moving
 - [ ] Game settings and client settings
 - [x] Sound effects when place buildings and stuff
 - [x] Trading
 - [ ] Maritime trade
-- [ ] Counter offering

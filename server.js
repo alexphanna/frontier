@@ -9,6 +9,10 @@ class Player {
             cities: 4,
             roads: 15
         }
+        this.specials = {
+            longestRoad: false,
+            largestArmy: false
+        }
         this.resources = {
             brick: 0,
             grain: 0,
@@ -17,12 +21,13 @@ class Player {
             wool: 0
         };
         this.developments = {
-            knight: 1,
+            knight: 5,
             monopoly: 0,
             yearOfPlenty: 0,
-            roadBuilding: 1,
+            roadBuilding: 0,
             victoryPoint: 0
         };
+        this.army = 0;
     }
     randomResource() {
         const flatResources = Object.entries(this.resources).flatMap(([key, value]) => Array(value).fill(key));
@@ -47,8 +52,10 @@ class publicPlayer {
         this.name = player.name;
         this.color = player.color;
         this.points = player.points;
+        this.specials = player.specials;
         this.resources = Object.values(player.resources).reduce((a, b) => a + b, 0);
         this.developments = Object.values(player.developments).reduce((a, b) => a + b, 0);
+        this.army = player.army;
     }
 }
 
@@ -301,7 +308,7 @@ let roadBuilding = false;
 let roadsBuilt = 0;
 let knight = false;
 
-console.log(Vertex.adjacentTiles(3, 2));
+let largestArmyMin = 3;
 
 let settlementVertices = [];
 let cityVertices = [];
@@ -391,16 +398,13 @@ wss.on('connection', (ws) => {
         }
         else if (args[0] === 'trade') {
             if (args[1] === 'offer') {
+                let trader = Array.from(players).find(player => player.name === args[2]);
                 // check if it is past the initial phase
                 // if (round < 2) return; UNCOMMENT LATER
                 // check if trade is legal
                 const you = JSON.parse(args[3]);
                 const them = JSON.parse(args[4]);
-                if (player.name !== args[2]) {
-                    ws.send('error You may only offer trades on your turn');
-                    return;
-                }
-                if (!player.hasResources(you)) {
+                if (!trader.hasResources(you)) {
                     ws.send('error Insufficient resources');
                     return;
                 }
@@ -418,8 +422,23 @@ wss.on('connection', (ws) => {
                     ws.send('error You may not trade like resources (e.g., 2 brick → 1 brick)', true);
                     return;
                 }
-
-                broadcast(String(message));
+                
+                if (player.name !== args[2]) {
+                    for (let i = 0; i < players.size; i++) {
+                        if (Array.from(players)[i].name === player.name) {
+                            Array.from(clients)[i].send(`trade offer ${trader.name} ${JSON.stringify(you)} ${args[4]}`);
+                        }
+                    }
+                    ws.send('notification Trade offer sent to ' + player.name);
+                }
+                else {
+                    for (let i = 0; i < players.size; i++) {
+                        if (Array.from(players)[i].name !== trader.name) {
+                            Array.from(clients)[i].send(`trade offer ${trader.name} ${JSON.stringify(you)} ${args[4]}`);
+                        }
+                    }
+                    ws.send('notification Trade offer sent to everyone');
+                }
             }
             else if (args[1] === 'accept') {
                 let you = Array.from(players).find(player => player.name === args[2]);
@@ -506,6 +525,18 @@ wss.on('connection', (ws) => {
             if (args.length === 1) {
                 knight = true;
                 player.developments["knight"]--;
+                player.army++;
+                if (player.army >= largestArmyMin) {
+                    largestArmyMin = player.army + 1;
+                    for (let i = 0; i < players.size; i++) {
+                        if (playerArray[i].specials["largestArmy"]) {
+                            playerArray[i].specials["largestArmy"] = false;
+                            playerArray[i].points -= 2;
+                        }
+                    }
+                    player.specials["largestArmy"] = true;
+                    player.points += 2;
+                }
             }
             else {
                 let victim = Array.from(players).find(player => player.name === args[1]);

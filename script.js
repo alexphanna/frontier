@@ -307,6 +307,9 @@ function updateLobby(players) {
 }
 
 function endTurn() {
+    svg.getElementById('settlementVertices').style.visibility = "hidden";
+    svg.getElementById('cityVertices').style.visibility = "hidden";
+    svg.getElementById('edges').style.visibility = "hidden";
     ws.send('end turn');
     document.getElementById('actions').style.visibility = 'hidden';
 }
@@ -339,7 +342,7 @@ class Notification {
 
         let heading = document.createElement('h3');
         heading.textContent = message;
-        heading.style.color = isError ? 'red' : '';
+        heading.style.color = isError ? '#FF2040' : '';
         heading.style.margin = '10px';
         notification.appendChild(heading);
 
@@ -596,6 +599,13 @@ function join() {
     playerName = document.getElementById('name').value;
     address = document.getElementById('address').value;
 
+    if(playerName === '') return;
+    // Check if name contains spaces
+    if (playerName.indexOf(' ') !== -1) {
+        new Notification('Name cannot contain spaces', true);
+        return;
+    }
+
     ws = new WebSocket(`ws://${address}`);
     ws.onerror = function (event) {
         new Notification("Could not connect to server", true);
@@ -619,7 +629,7 @@ function join() {
             }
         }
         else if (args[0] === 'trade') {
-            if (args[1] === 'offer' && args[2] != playerName) {
+            if (args[1] === 'offer') {
                 new tradeOffer(args[2], args[3], args[4], args[5]);
             }
             else if (args[1] === 'unoffer') {
@@ -679,6 +689,9 @@ function join() {
         }
         else if (args[0] === 'error') {
             new Notification(args.slice(1).join(' '), true);
+        }
+        else if (args[0] === 'notification') {
+            new Notification(args.slice(1).join(' '));
         }
         else if (args[0] === 'start') {
             if (args[1] === 'game') {
@@ -783,6 +796,14 @@ function showBuild() {
         playerPoints.textContent += ')';
         playerTitle.appendChild(playerPoints);
         content.appendChild(playerTitle);
+
+        if (player.specials["largestArmy"]) {
+            let largestArmy = document.createElement('h3');
+            largestArmy.textContent = 'Largest Army';
+            largestArmy.style.fontWeight = 'bold';
+            content.appendChild(largestArmy);
+        }
+
         let resourcesHeading = document.createElement('h3');
         resourcesHeading.textContent = 'Resources:';
         content.appendChild(resourcesHeading);
@@ -817,7 +838,15 @@ function showBuild() {
         let developmentsHeading = document.createElement('h3');
         developmentsHeading.textContent = `Developments: ${playerName === player.name ? Object.values(player.developments).reduce((a, b) => a + b) : player.developments}`;
         content.appendChild(developmentsHeading);
+
+        if (player.army > 0) {
+            let knights = document.createElement('h3');
+            knights.textContent = `Army: ${player.army}`;
+            content.appendChild(knights);
+        }
+
         content.appendChild(document.createElement('br'));
+
         if (player.name === playerName) {
             let developments = document.getElementById('developments');
             developments.innerHTML = '';
@@ -866,8 +895,6 @@ function showBuild() {
                 }
             }
         }
-
-        content.appendChild(document.createElement('br'));
     }
 }
 
