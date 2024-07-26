@@ -44,6 +44,10 @@ class Map {
             for (let j = 0; j < this.terrainMap[i].length; j++) {
                 let tile = createTile(j * this.inradius * 2 + this.inradius * (maxLength + 1 - this.terrainMap[i].length) + this.leftMargin, i * (this.sideLength + Math.sqrt(Math.pow(this.sideLength, 2) - Math.pow(this.inradius, 2))) + this.circumradius + this.topMargin, this.inradius * 2, this.terrainMap[i][j], this.numberMap[i][j]);
                 tile.addEventListener('click', function () {
+                    if (knightPlayed) {
+                        knightPlayed = false;
+                        ws.send(`knight`);
+                    }
                     ws.send(`robber ${i} ${j}`);
                 });
                 tiles.appendChild(tile);
@@ -269,14 +273,18 @@ function build(type) {
     currentType = type;
     svg.getElementById('settlementVertices').style.visibility = "hidden";
     svg.getElementById('cityVertices').style.visibility = "hidden";
-    svg.getElementById('edges').style.visibility = "hidden";
-    if (type == "settlement") {
-        svg.getElementById('settlementVertices').style.visibility = "visible";
-    }
-    else if (type == "city") {
-        svg.getElementById('cityVertices').style.visibility = "visible";
-    }
-    else {
+    if (!roadBuilding) svg.getElementById('edges').style.visibility = "hidden";
+    if (type == "settlement" || type == "city") {
+        // check if road building is active
+        if (roadBuilding) {
+            new Notification('Build two roads');
+            return;
+        }
+
+        if (type == "settlement") svg.getElementById('settlementVertices').style.visibility = "visible";
+        else if (type == "city") svg.getElementById('cityVertices').style.visibility = "visible";
+    }   
+    else if (type == "road") {
         svg.getElementById('edges').style.visibility = "visible";
     }
 }
@@ -558,6 +566,32 @@ class monopoly {
     }
 }
 
+class knight {
+    constructor(names) {
+        let knight = document.createElement('div');
+        knight.classList.add('interface', 'notification');
+
+        let heading = document.createElement('h3');
+        heading.textContent = 'Knight';
+        heading.style.fontWeight = 'bold';
+        heading.style.margin = '10px';
+        knight.appendChild(heading);
+
+        let notifications = document.getElementById('notifications');
+        notifications.appendChild(knight);
+        
+        for (let name of names) {
+            let playerButton = createButton(name.toUpperCase());
+            playerButton.style.color = players.find(player => player.name === name).color;
+            playerButton.addEventListener('click', () => {
+                ws.send(`knight ${name}`);
+                notifications.removeChild(knight);
+            });
+            knight.appendChild(playerButton);
+        }
+    }
+}
+
 function join() {
     playerName = document.getElementById('name').value;
     address = document.getElementById('address').value;
@@ -626,6 +660,17 @@ function join() {
         else if (args[0] === 'robber') {
             map.moveRobber(parseInt(args[1]), parseInt(args[2]));
         }
+        else if (args[0] === 'knight') {
+            if (JSON.parse(args.slice(1)).length === 0) {
+                return;
+            }   
+            else if (JSON.parse(args.slice(1)).length === 1) {
+                ws.send(`knight ${JSON.parse(args.slice(1))[0]}`);
+            }
+            else {
+                new knight(JSON.parse(args.slice(1)));
+            }
+        }
         else if (args[0] === 'chat' || args[0] === 'log') {
             chat.push(args[0] === 'chat' ? [args[1], args.slice(2).join(' ')] : [args.slice(1).join(' ')]);
             if (document.getElementById('chatButton').disabled) {
@@ -684,7 +729,15 @@ function join() {
 
                         let road = Building.createRoad(edge.x, edge.y, edge.angle, "transparent", "#ffffffc0");
                         road.addEventListener('click', function () {
-                            edges.style.visibility = "hidden";
+                            if (roadBuilding) {
+                                roadsBuilt++;
+                                if (roadsBuilt == 2) {
+                                    roadBuilding = false;
+                                    roadsBuilt = 0;
+                                    edges.style.visibility = "hidden";
+                                }
+                            }
+                            else edges.style.visibility = "hidden";
                             ws.send(`build road ${i} ${j} ${edge.angle} ${color}`);
                         });
                         road.addEventListener('mouseover', function () {
@@ -742,19 +795,19 @@ function showBuild() {
             let actionButtons = document.getElementById('actions').getElementsByTagName('button');
             for (let button of actionButtons) {
                 if (button.id === 'settlementButton') {
-                    button.disabled = player.resources["brick"] < 1 || player.resources["lumber"] < 1 || player.resources["wool"] < 1 || player.resources["grain"] < 1;
+                    // button.disabled = player.resources["brick"] < 1 || player.resources["lumber"] < 1 || player.resources["wool"] < 1 || player.resources["grain"] < 1;
                     button.textContent = `SETTLEMENT (${player.buildings["settlements"]})`;
                 }
                 else if (button.id === 'cityButton') {
-                    button.disabled = (player.resources["grain"] < 2 || player.resources["ore"] < 3);
+                    // button.disabled = (player.resources["grain"] < 2 || player.resources["ore"] < 3);
                     button.textContent = `CITY (${player.buildings["cities"]})`;
                 }
                 else if (button.id === 'roadButton') {
-                    button.disabled = player.resources["brick"] < 1 || player.resources["lumber"] < 1;
+                    // button.disabled = player.resources["brick"] < 1 || player.resources["lumber"] < 1;
                     button.textContent = `ROAD (${player.buildings["roads"]})`;
                 }
                 else if (button.id === 'developButton') {
-                    button.disabled = player.resources["grain"] < 1 || player.resources["wool"] < 1 || player.resources["ore"] < 1;
+                    // button.disabled = player.resources["grain"] < 1 || player.resources["wool"] < 1 || player.resources["ore"] < 1;
                 }
             }
         }
@@ -785,7 +838,8 @@ function showBuild() {
                     developmentButton.textContent = `${capitalize(Object.keys(player.developments)[i])} (${player.developments[Object.keys(player.developments)[i]]})`;
                     if (developmentButton.id === 'knightButton') {
                         developmentButton.addEventListener('click', () => {
-                            new Notification('Move the robber', false, 0);
+                            knightPlayed = true;
+                            new Notification('Move the robber');
                         });
                     }
                     else if (developmentButton.id === 'yearOfPlentyButton') {
@@ -796,6 +850,16 @@ function showBuild() {
                     else if (developmentButton.id === 'monopolyButton') {
                         developmentButton.addEventListener('click', () => {
                             new monopoly();
+                        });
+                    }
+                    else if (developmentButton.id === 'roadBuildingButton') {
+                        developmentButton.addEventListener('click', () => {
+                            ws.send('progress roadBuilding');
+                            roadBuilding = true;
+                            roadsBuilt = 0;
+                            
+                            build('road');
+                            new Notification('Build two roads');
                         });
                     }
                     developments.appendChild(developmentButton);
@@ -866,8 +930,49 @@ function showChat() {
     }
     content.scrollTop = content.scrollHeight;
 }
+let input = document.getElementById('chatInput');
+input.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' && input.value !== '') {
+        ws.send(`chat ${playerName} ${input.value}`);
+        input.value = '';
+    }
+});
 
-document.addEventListener('wheel', function (event) {
+let svg = document.getElementById('map');
+let currentType = "settlement";
+let map;
+let roadBuilding = false;
+let roadsBuilt = 0;
+let knightPlayed = false;
+
+var chat = []; // array of chat messages
+var playerName;
+var color;
+var address;
+var players;
+
+svg.addEventListener('mousedown', function (event) {
+    let x = event.clientX;
+    let y = event.clientY;
+    let left = parseInt(svg.style.left);
+    let top = parseInt(svg.style.top);
+
+    function mouseMove(event) {
+        left += event.clientX - x;
+        top += event.clientY - y;
+        move(svg, left, top);
+        x = event.clientX;
+        y = event.clientY;
+    }
+
+    svg.addEventListener('mousemove', mouseMove);
+
+    svg.addEventListener('mouseup', function (event) {
+        svg.removeEventListener('mousemove', mouseMove);
+    });
+});
+
+svg.addEventListener('wheel', function (event) {
     function resize(svg, percent) {
         const rect = svg.getBoundingClientRect();
         const width = svg.width.baseVal.value;
@@ -892,41 +997,3 @@ document.addEventListener('wheel', function (event) {
         resize(svg, 1.1);
     }
 });
-
-document.addEventListener('mousedown', function (event) {
-    let x = event.clientX;
-    let y = event.clientY;
-    let left = parseInt(svg.style.left);
-    let top = parseInt(svg.style.top);
-
-    function mouseMove(event) {
-        left += event.clientX - x;
-        top += event.clientY - y;
-        move(svg, left, top);
-        x = event.clientX;
-        y = event.clientY;
-    }
-
-    document.addEventListener('mousemove', mouseMove);
-
-    document.addEventListener('mouseup', function (event) {
-        document.removeEventListener('mousemove', mouseMove);
-    });
-});
-let input = document.getElementById('chatInput');
-input.addEventListener('keydown', function (event) {
-    if (event.key === 'Enter' && input.value !== '') {
-        ws.send(`chat ${playerName} ${input.value}`);
-        input.value = '';
-    }
-});
-
-let svg = document.getElementById('map');
-let currentType = "settlement";
-let map;
-
-var chat = []; // array of chat messages
-var playerName;
-var color;
-var address;
-var players;

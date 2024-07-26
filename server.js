@@ -10,11 +10,11 @@ class Player {
             roads: 15
         }
         this.resources = {
-            brick: 10,
-            grain: 10,
-            lumber: 10,
+            brick: 0,
+            grain: 0,
+            lumber: 0,
             ore: 0,
-            wool: 10
+            wool: 0
         };
         this.developments = {
             knight: 1,
@@ -23,6 +23,10 @@ class Player {
             roadBuilding: 1,
             victoryPoint: 0
         };
+    }
+    randomResource() {
+        const flatResources = Object.entries(this.resources).flatMap(([key, value]) => Array(value).fill(key));
+        return flatResources[Math.floor(Math.random() * flatResources.length)];
     }
     substractResources(resources) {
         for (const [key, value] of Object.entries(resources)) {
@@ -82,6 +86,22 @@ class Vertex {
 
         return adjacentVertices;
     }
+    static adjacentTiles(row, col) {
+        let adjacentTiles = [];
+        
+        adjacentTiles.push([row, Math.floor(col / 2) - (row <= 2 ? 0 : 1)]);
+        if ((col % 2 == 0 && row <= 2) || (col % 2 == 1 && row >= 3)) {
+            adjacentTiles.push([row, Math.floor(col / 2) - 1]);
+            adjacentTiles.push([row - 1, Math.floor(col / 2) - (row <= 2 ? 1 : 0)]);
+        }
+        else {
+            adjacentTiles.push([row - 1, Math.floor(col / 2) - (row <= 2 ? 0 : 1)]);
+            adjacentTiles.push([row - 1, Math.floor(col / 2) - (row <= 2 ? 0 : 1) + 1]);
+        }
+        adjacentTiles = adjacentTiles.filter(tile => tile[0] >= 0 && tile[0] < 5 && tile[1] >= 0 && tile[1] < map.terrainMap[tile[0]].length);
+
+        return adjacentTiles;
+    }
 }
 class Edge {
     // always returns 2 vertices
@@ -97,6 +117,18 @@ class Edge {
             // vertical row
             vertices.push([Math.floor(row / 2), col * 2 + (row > 5 ? 1 : 0)]);
             vertices.push([Math.ceil(row / 2), col * 2 + (row < 5 ? 1 : 0)]);
+        }
+
+        return vertices;
+    }
+}
+class Tile {
+    static adjacentVertices(row, col) {
+        let vertices = [];
+
+        for (let i = 0; i < 3; i++) {
+            vertices.push([row, col * 2 + i + (row > 2 ? 1 : 0)]);
+            vertices.push([row + 1, col * 2 + i + (row < 2 ? 1 : 0)]);
         }
 
         return vertices;
@@ -253,6 +285,7 @@ for (let i = 0; i < map.terrainMap.length; i++) {
         }
     }
 }
+// organize this stuff
 let turn = 0;
 let round = 0;
 let roll = 0;
@@ -264,8 +297,11 @@ let developmentDistr = {
     victoryPoint: 5
 }
 let developments = shuffle(Object.keys(developmentDistr).map(development => Array(developmentDistr[development]).fill(development)).flat());
-let builtSettlement = false;
-let builtRoad = false;
+let roadBuilding = false;
+let roadsBuilt = 0;
+let knight = false;
+
+console.log(Vertex.adjacentTiles(3, 2));
 
 let settlementVertices = [];
 let cityVertices = [];
@@ -327,12 +363,7 @@ wss.on('connection', (ws) => {
 
         const args = String(message).split(' ');
 
-        if (round === 1) {
-            var player = Array.from(players)[players.size - 1 - (turn % players.size)];
-        }
-        else {
-            var player = Array.from(players)[turn % players.size];
-        }
+        var player = round === 1 ? Array.from(players)[players.size - 1 - (turn % players.size)] : Array.from(players)[turn % players.size];
 
         if (args[0] === 'add') {
             ws.send('color ' + colors[players.size]);
@@ -429,7 +460,6 @@ wss.on('connection', (ws) => {
                     ws.send('error No monopoly cards left');
                     return;
                 }
-                player.developments["monopoly"]--;
                 for (let i = 0; i < playerArray.length; i++) {
                     if (i === turn % playerArray.length) {
                         continue;
@@ -450,11 +480,38 @@ wss.on('connection', (ws) => {
                     ws.send('error Must take 2 resources');
                     return;
                 }
-                player.developments["yearOfPlenty"]--;
                 let resources = JSON.parse(args[2]);
                 for (let resource of Object.keys(resources)) {
                     player.resources[resource] += resources[resource];
                 }
+            }
+            else if (args[1] === 'roadBuilding') {
+                // check if player has road building card
+                if (player.developments["roadBuilding"] === 0) {
+                    ws.send('error No road building cards left');
+                    return;
+                }
+
+                roadBuilding = true;
+            }   
+            player.developments[args[1]]--;
+            broadcastPlayers();
+        }
+        else if (args[0] === 'knight') {
+            // check if player has knight card
+            if (player.developments["knight"] === 0) {
+                ws.send('error No knight cards left');
+                return;
+            }
+            if (args.length === 1) {
+                knight = true;
+                player.developments["knight"]--;
+            }
+            else {
+                let victim = Array.from(players).find(player => player.name === args[1]);
+                const randomResource = victim.randomResource();
+                victim.resources[randomResource]--;
+                player.resources[randomResource]++;
             }
             broadcastPlayers();
         }
@@ -486,16 +543,20 @@ wss.on('connection', (ws) => {
                     for (let j = 0; j < adjacentEdges.length; j++) {
                         const edge = adjacentEdges[j];
                         if (isNaN(edges[edge[0]][edge[1]])) {
-                            if (turn >= players.size) {
-                                edges[edge[0]][edge[1]] = players.size - 1 - (turn % players.size)
-                            }
-                            else {
-                                edges[edge[0]][edge[1]] = turn % players.size;
-                            }
+                            edges[edge[0]][edge[1]] = round === 1 ? players.size - 1 - (turn % players.size) : turn % players.size;
                         }
                     }
 
                     // give player resources on round two
+                    if (round === 1) {
+                        const adjacentTiles = Vertex.adjacentTiles(row, col);
+                        for (let j = 0; j < adjacentTiles.length; j++) {
+                            const tile = adjacentTiles[j];
+                            if (map.terrainMap[tile[0]][tile[1]] !== "Desert") {
+                                player.resources[resources[map.terrainMap[tile[0]][tile[1]]]]++;
+                            }
+                        }
+                    }
                 }
                 else if (turn >= players.size * 2) {
                     // check if player has resources
@@ -513,6 +574,11 @@ wss.on('connection', (ws) => {
                         ws.send('error Illegal settlement placement');
                         return;
                     }
+                    // check if road building is active
+                    if (roadBuilding) {
+                        ws.send('error Road building is active');
+                        return;
+                    }
                     player.substractResources(costs);
                 }
                 broadcast(String(message));
@@ -520,15 +586,15 @@ wss.on('connection', (ws) => {
                 player.points++;
                 player.buildings["settlements"]--;
                 settlementVertices[row][col] = players.size;
-                settlements[row][col] = turn % players.size;
-                cityVertices[row][col] = turn % players.size;
+                settlements[row][col] = round === 1 ? players.size - 1 - (turn % players.size) : turn % players.size;
+                cityVertices[row][col] = round === 1 ? players.size - 1 - (turn % players.size) : turn % players.size;
 
                 const adjacentVertices = Vertex.adjacentVertices(row, col);
                 for (let i = 0; i < adjacentVertices.length; i++) {
                     settlementVertices[adjacentVertices[i][0]][adjacentVertices[i][1]] = players.size + 1;
                 }
             }
-            else if (args[1] === 'city') {               
+            else if (args[1] === 'city') {
                 const costs = {
                     grain: 2,
                     ore: 3
@@ -548,6 +614,11 @@ wss.on('connection', (ws) => {
                 // check if city is legal
                 if (cityVertices[row][col] != turn % players.size) {
                     ws.send('error Illegal city placement');
+                    return;
+                }
+                // check if road building is active
+                if (roadBuilding) {
+                    ws.send('error Road building is active');
                     return;
                 }
 
@@ -591,9 +662,9 @@ wss.on('connection', (ws) => {
                         return;
                     }
                 }
-                if (turn >= players.size * 2) {
+                if (round > 1) {
                     // check if player has resources
-                    if (!player.hasResources(costs)) {
+                    if (!player.hasResources(costs) && !roadBuilding) {
                         ws.send('error Insufficient resources');
                         return;
                     }
@@ -603,7 +674,16 @@ wss.on('connection', (ws) => {
                         return;
                     }
 
-                    player.substractResources(costs);
+                    if (roadBuilding) {
+                        roadsBuilt++;
+                        if (roadsBuilt === 2) {
+                            roadBuilding = false;
+                            roadsBuilt = 0;
+                        }
+                    }
+                    else {
+                        player.substractResources(costs);
+                    }
                 }
 
                 broadcast(String(message));
@@ -643,7 +723,6 @@ wss.on('connection', (ws) => {
                         }
                     }
                 }
-
             }
 
             broadcastPoints();
@@ -661,7 +740,34 @@ wss.on('connection', (ws) => {
             }
         }
         else if (args[0] === 'robber') {
-            if (roll === 7) {
+            if (roll === 7 || knight) {
+                robber = [parseInt(args[1]), parseInt(args[2])];
+
+                // check if robber is moved to desert
+                if (map.terrainMap[robber[0]][robber[1]] === "Desert") {
+                    ws.send('error Robber cannot be moved to desert');
+                    return;
+                }
+
+                if (knight) {
+                    knight = false;
+                    let adjacentPlayers = [];
+
+                    const vertices = Tile.adjacentVertices(robber[0], robber[1]);
+                    for (let i = 0; i < vertices.length; i++) {
+                        if (!isNaN(settlements[vertices[i][0]][vertices[i][1]]) && settlements[vertices[i][0]][vertices[i][1]] != turn % players.size) {
+                            adjacentPlayers.push(playerArray[settlements[vertices[i][0]][vertices[i][1]]].name);
+                        }
+                        else if (!isNaN(cities[vertices[i][0]][vertices[i][1]]) && cities[vertices[i][0]][vertices[i][1]] != turn % players.size) {
+                            adjacentPlayers.push(playerArray[cities[vertices[i][0]][vertices[i][1]]].name);
+                        }
+                    }
+                    
+                    // remove duplicates
+                    adjacentPlayers = Array.from(new Set(adjacentPlayers));
+
+                    ws.send(`knight ${JSON.stringify(adjacentPlayers)}`);
+                }
                 broadcast(String(message));
             }
         }
@@ -673,8 +779,9 @@ wss.on('connection', (ws) => {
 
             broadcast(String(message));
         }
+
         else if (args[0] === 'end' && args[1] === 'turn') {
-            if (round < 2) {
+            if (turn < players.size * 2 - 1) { // can't use round because it is incremented after this
                 if (player.buildings["settlements"] > 4 - round) {
                     ws.send(`error You must build a settlement and a road during round ${["one", "two"][round]}`);
                 }
@@ -686,33 +793,31 @@ wss.on('connection', (ws) => {
                     round = Math.floor(turn / players.size);
                 }
 
-                Array.from(clients)[round === 0 ? turn : players.size - 1 - (turn % players.size)].send('start turn');
+                Array.from(clients)[round === 1 ? players.size - 1 - (turn % players.size) : turn % players.size].send('start turn');
             }
-            if (turn >= players.size * 2) {
+            else {
                 turn++;
                 round = Math.floor(turn / players.size);
                 // roll dice
                 Array.from(clients)[turn % players.size].send('start turn');
                 roll = Math.floor(Math.random() * 6 + 1) + Math.floor(Math.random() * 6 + 1);
                 broadcast('roll ' + roll);
-                
-                function updateResources(position, i, j, multiplier) {
-                    const playersArray = Array.from(players);
-                    if (!isNaN(position)) {
-                        const player = playersArray[position];
-                        player.resources[resources[map.terrainMap[i][j]]] += 1 * multiplier;
-                    }
-                }
 
                 for (let i = 0; i < map.terrainMap.length; i++) {
                     for (let j = 0; j < map.terrainMap[i].length; j++) {
-                        if (map.numberMap[i][j] === roll) {
-                            for (let k = -1; k <= 1; k++) {
-                                const baseIndex = j * 2 + k + 1 + (i < map.terrainMap.length / 2 ? 0 : 1);
-                                updateResources(settlements[i][baseIndex], i, j, 1);
-                                updateResources(settlements[i + 1][baseIndex + (i >= map.terrainMap.length / 2 ? -1 : 1)], i, j, 1);
-                                updateResources(cities[i][baseIndex], i, j, 2);
-                                updateResources(cities[i + 1][baseIndex + (i >= map.terrainMap.length / 2 ? -1 : 1)], i, j, 2);
+                        if (map.numberMap[i][j] === roll && (i != robber[0] || j != robber[1])) {
+                            const vertices = Tile.adjacentVertices(i, j);
+                            for (let k = 0; k < vertices.length; k++) {
+                                const settlement = settlements[vertices[k][0]][vertices[k][1]];
+                                const city = cities[vertices[k][0]][vertices[k][1]];
+                                if (!isNaN(settlement)) {
+                                    const player = playerArray[settlement];
+                                    player.resources[resources[map.terrainMap[i][j]]] += 1;
+                                }
+                                if (!isNaN(city)) {
+                                    const player = playerArray[city];
+                                    player.resources[resources[map.terrainMap[i][j]]] += 2;
+                                }
                             }
                         }
                     }
