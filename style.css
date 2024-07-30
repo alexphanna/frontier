@@ -17,10 +17,12 @@ div#game {
 }
 
 svg {
+    /* border: 1px solid #ff0000; */
     position: absolute;
 }
 
 polygon,
+text,
 rect {
     transform-origin: center;
     transform-box: fill-box;
@@ -38,20 +40,14 @@ rect {
 }
 
 text {
-    font-family: Arial, Helvetica, sans-serif;
-    /* Jost doesn't center properly fix later */
     text-anchor: middle;
-    dominant-baseline: middle;
+    dominant-baseline: central;
 }
 
 ul li {
     margin-left: 10px;
     list-style-type: none;
     color: #e0e0e0;
-}
-
-h2 {
-    font-weight: bold;
 }
 
 .interface {

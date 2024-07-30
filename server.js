@@ -14,11 +14,11 @@ class Player {
             largestArmy: false
         }
         this.resources = {
-            brick: 0,
-            grain: 0,
-            lumber: 0,
-            ore: 0,
-            wool: 0
+            brick: 20,
+            grain: 20,
+            lumber: 20,
+            ore: 20,
+            wool: 20
         };
         this.developments = {
             knight: 5,
@@ -28,6 +28,7 @@ class Player {
             victoryPoint: 0
         };
         this.army = 0;
+        this.harbors = [];
     }
     randomResource() {
         const flatResources = Object.entries(this.resources).flatMap(([key, value]) => Array(value).fill(key));
@@ -36,6 +37,11 @@ class Player {
     substractResources(resources) {
         for (const [key, value] of Object.entries(resources)) {
             this.resources[key] -= value;
+        }
+    }
+    addResources(resources) {
+        for (const [key, value] of Object.entries(resources)) {
+            this.resources[key] += value;
         }
     }
     hasResources(resources) {
@@ -74,6 +80,15 @@ class Vertex {
         }
         else if (row >= 3 && row < settlementVertices.length - 1) {
             edges.push([row * 2 + (col % 2 == 1 ? 1 : -1), Math.floor(col / 2)]);
+        }
+
+        // remove repeats
+        for (let i = 0; i < edges.length; i++) {
+            for (let j = i + 1; j < edges.length; j++) {
+                if (edges[i][0] === edges[j][0] && edges[i][1] === edges[j][1]) {
+                    edges.splice(j, 1);
+                }
+            }
         }
 
         return edges;
@@ -187,7 +202,21 @@ function generateMap() {
             }
         }
     }
-    return { terrainMap, numberMap };
+
+    let harborMap = [
+        ["generic", 0, 0, "grain", 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, "ore"],
+        ["lumber", 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, "generic"],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ["brick", 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, "wool"],
+        [0, 0, 0, 0],
+        ["generic", 0, 0, "generic", 0, 0],
+    ];
+    return { terrainMap, numberMap, harborMap };
 }
 
 /**
@@ -397,7 +426,7 @@ wss.on('connection', (ws) => {
             }
         }
         else if (args[0] === 'trade') {
-            if (args[1] === 'offer') {
+            if (args[1] === 'domestic') {
                 let trader = Array.from(players).find(player => player.name === args[2]);
                 // check if it is past the initial phase
                 // if (round < 2) return; UNCOMMENT LATER
@@ -426,7 +455,7 @@ wss.on('connection', (ws) => {
                 if (player.name !== args[2]) {
                     for (let i = 0; i < players.size; i++) {
                         if (Array.from(players)[i].name === player.name) {
-                            Array.from(clients)[i].send(`trade offer ${trader.name} ${JSON.stringify(you)} ${args[4]}`);
+                            Array.from(clients)[i].send(`trade domestic ${trader.name} ${JSON.stringify(you)} ${args[4]}`);
                         }
                     }
                     ws.send('notification Trade offer sent to ' + player.name);
@@ -434,10 +463,59 @@ wss.on('connection', (ws) => {
                 else {
                     for (let i = 0; i < players.size; i++) {
                         if (Array.from(players)[i].name !== trader.name) {
-                            Array.from(clients)[i].send(`trade offer ${trader.name} ${JSON.stringify(you)} ${args[4]}`);
+                            Array.from(clients)[i].send(`trade domestic ${trader.name} ${JSON.stringify(you)} ${args[4]}`);
                         }
                     }
                     ws.send('notification Trade offer sent to everyone');
+                }
+            }
+            else if (args[1] === 'maritime') {
+                let you = JSON.parse(args[2]);
+                let them = JSON.parse(args[3]);
+
+                // check if the trade is for the same resource
+                equal = false;
+                for (let key of Object.keys(you)) {
+                    if (key in them) {
+                        equal = true;
+                    }
+                }
+                if (equal) {
+                    ws.send('error You may not trade like resources (e.g., 2 brick → 1 brick)', true);
+                    return;
+                }
+
+                // check if player has resources
+                if (!player.hasResources(you)) {
+                    ws.send('error Insufficient resources');
+                    return false;
+                }
+
+                function isMaritimeTradeLegal(you, them, antecedent) {
+                    let youTotal = Object.values(you).reduce((a, b) => a + b, 0);
+                    let themTotal = Object.values(them).reduce((a, b) => a + b, 0);
+
+                    if (themTotal * antecedent !== youTotal) return false;
+                    for (let key of Object.keys(you)) {
+                        if (you[key] % antecedent !== 0) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+
+                var legal = false;
+                for (let i = 2; i <= 4; i++) {
+                    if (isMaritimeTradeLegal(you, them, i)) {
+                        legal = true;
+                        break;
+                    }
+                }
+
+                if (legal) {
+                    player.substractResources(you);
+                    player.addResources(them);
+                    broadcastPlayers();
                 }
             }
             else if (args[1] === 'accept') {
@@ -619,6 +697,16 @@ wss.on('connection', (ws) => {
                 settlementVertices[row][col] = players.size;
                 settlements[row][col] = round === 1 ? players.size - 1 - (turn % players.size) : turn % players.size;
                 cityVertices[row][col] = round === 1 ? players.size - 1 - (turn % players.size) : turn % players.size;
+
+                // check if settlement is placed on a harbor
+                const adjacentEdges = Vertex.adjacentEdges(row, col);
+                console.log(adjacentEdges);
+                for (let i = 0; i < adjacentEdges.length; i++) {
+                    const edge = adjacentEdges[i];
+                    if (map.harborMap[edge[0]][edge[1]] != 0) {
+                        player.harbors.push(map.harborMap[edge[0]][edge[1]]);
+                    }
+                }
 
                 const adjacentVertices = Vertex.adjacentVertices(row, col);
                 for (let i = 0; i < adjacentVertices.length; i++) {

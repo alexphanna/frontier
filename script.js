@@ -1,7 +1,8 @@
 class Map {
-    constructor(svg, terrainMap, numberMap) {
+    constructor(svg, terrainMap, numberMap, harborMap) {
         this.terrainMap = terrainMap;
         this.numberMap = numberMap;
+        this.harborMap = harborMap;
 
         // Draw the map
         const maxLength = Math.max(...this.terrainMap.map(row => row.length));
@@ -60,6 +61,42 @@ class Map {
         settlementVertices.id = "settlementVertices";
         svg.appendChild(settlementVertices);
         settlementVertices.style.visibility = "hidden";
+
+        for (let i = 0; i < this.harborMap.length; i++) {
+            for (let j = 0; j < this.harborMap[i].length; j++) {
+                if (this.harborMap[i][j] != 0) {
+                    let ratio = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    let position = this.standardToEdge(i, j);
+                    let offset = 3;
+
+                    // Calculate new x and y based on the angle and offset
+                    let newX = position.x + offset * Math.sin(position.angle * Math.PI / 180) * (i > this.harborMap.length / 2 && Math.abs(position.angle) == 30  ? -1 : 1);
+                    let newY = position.y - offset * Math.cos(position.angle * Math.PI / 180) * (i > this.harborMap.length / 2 && Math.abs(position.angle) == 30 ? -1 : 1);
+
+                    ratio.setAttribute("x", newX);
+                    ratio.setAttribute("y", newY);
+                    ratio.setAttribute("transform", `rotate(${position.angle})`);
+                    ratio.setAttribute("font-size", "3");
+
+                    if (this.harborMap[i][j] === "generic") {
+                        ratio.textContent = "3:1";
+                    }
+                    else {
+                        ratio.textContent = "2:1";
+
+                        let resource = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        resource.setAttribute("x", newX + offset * Math.sin(position.angle * Math.PI / 180) * (i > this.harborMap.length / 2 && Math.abs(position.angle) == 30  ? -1 : 1));
+                        resource.setAttribute("y", newY - offset * Math.cos(position.angle * Math.PI / 180) * (i > this.harborMap.length / 2 && Math.abs(position.angle) == 30 ? -1 : 1));
+                        resource.setAttribute("transform", `rotate(${position.angle})`);
+                        resource.setAttribute("font-size", "3");
+                        resource.textContent = this.harborMap[i][j].charAt(0).toUpperCase() + this.harborMap[i][j].slice(1);
+                        svg.appendChild(resource);
+                    }
+
+                    svg.appendChild(ratio);
+                }
+            }
+        }
 
         this.cityVertices = [];
         let cityVertices = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -134,7 +171,7 @@ class Map {
         else {
             var x = col * (this.inradius * 2) + this.inradius * (5 - this.terrainMap[Math.floor(row / 2)].length) + this.leftMargin;
             var y = Math.floor(row / 2) * (this.circumradius + this.sideLength / 2) + this.topMargin + this.circumradius;
-            var angle = 90;
+            var angle = (col == 0 ? -90 : 90);
         }
 
         return { x, y, angle };
@@ -234,6 +271,7 @@ function createTile(x, y, width, terrain, number) {
         tile.appendChild(token);
 
         let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.classList.add("tokenText");
         text.setAttribute("x", x);
         text.setAttribute("y", y);
         text.setAttribute("fill", (number == 6 || number == 8 ? "red" : "black"));
@@ -629,7 +667,7 @@ function join() {
             }
         }
         else if (args[0] === 'trade') {
-            if (args[1] === 'offer') {
+            if (args[1] === 'domestic') {
                 new tradeOffer(args[2], args[3], args[4], args[5]);
             }
             else if (args[1] === 'unoffer') {
@@ -665,7 +703,7 @@ function join() {
         }
         else if (args[0] === 'map') {
             const maps = JSON.parse(args[1]);
-            map = new Map(svg, maps.terrainMap, maps.numberMap);
+            map = new Map(svg, maps.terrainMap, maps.numberMap, maps.harborMap);
         }
         else if (args[0] === 'robber') {
             map.moveRobber(parseInt(args[1]), parseInt(args[2]));
@@ -917,16 +955,27 @@ function showTrade() {
     let themResourceInput = new resourceInput();
     content.appendChild(themResourceInput.input);
 
-    offerButton = document.createElement('button');
-    offerButton.textContent = 'OFFER';
+    domesticButton = document.createElement('button');
+    domesticButton.textContent = 'DOMESTIC';
 
-    offerButton.addEventListener('click', () => {
+    domesticButton.addEventListener('click', () => {
         you = removeZeroes(youResourceInput.resources);
         them = removeZeroes(themResourceInput.resources);
-        ws.send(`trade offer ${playerName} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
+        ws.send(`trade domestic ${playerName} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
         showTrade();
     });
-    content.appendChild(offerButton);
+    content.appendChild(domesticButton);
+    
+    maritimeButton = document.createElement('button');
+    maritimeButton.textContent = 'MARITIME';
+
+    maritimeButton.addEventListener('click', () => {
+        you = removeZeroes(youResourceInput.resources);
+        them = removeZeroes(themResourceInput.resources);
+        ws.send(`trade maritime ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))}`);
+        showTrade();
+    });
+    content.appendChild(maritimeButton);
 }
 
 function showChat() {
