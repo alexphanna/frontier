@@ -14,14 +14,14 @@ class Player {
             largestArmy: false
         }
         this.resources = {
-            brick: 20,
-            grain: 20,
-            lumber: 20,
-            ore: 20,
-            wool: 20
+            brick: 0,
+            grain: 0,
+            lumber: 0,
+            ore: 0,
+            wool: 0
         };
         this.developments = {
-            knight: 5,
+            knight: 0,
             monopoly: 0,
             yearOfPlenty: 0,
             roadBuilding: 0,
@@ -426,21 +426,21 @@ wss.on('connection', (ws) => {
             }
         }
         else if (args[0] === 'trade') {
-            if (args[1] === 'domestic') {
-                let trader = Array.from(players).find(player => player.name === args[2]);
+            function isTradeLegal(you, them) {
                 // check if it is past the initial phase
-                // if (round < 2) return; UNCOMMENT LATER
-                // check if trade is legal
-                const you = JSON.parse(args[3]);
-                const them = JSON.parse(args[4]);
-                if (!trader.hasResources(you)) {
+                // if (round < 2) return false; UNCOMMENT LATER
+
+                // check if player has resources
+                if (!player.hasResources(you)) {
                     ws.send('error Insufficient resources');
-                    return;
+                    return false;
                 }
+
                 if (Object.keys(you).length === 0 || Object.keys(them).length === 0) {
-                    ws.send('error You must include at least one resource from each player', true);
-                    return;
+                    ws.send('error You must include at least one resource on each side of the trade', true);
+                    return false;
                 }
+
                 equal = false;
                 for (let key of Object.keys(you)) {
                     if (key in them) {
@@ -449,9 +449,20 @@ wss.on('connection', (ws) => {
                 }
                 if (equal) {
                     ws.send('error You may not trade like resources (e.g., 2 brick → 1 brick)', true);
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (args[1] === 'domestic') {
+                const you = JSON.parse(args[3]);
+                const them = JSON.parse(args[4]);
+
+                if (!isTradeLegal(you, them)) {
                     return;
                 }
-                
+
                 if (player.name !== args[2]) {
                     for (let i = 0; i < players.size; i++) {
                         if (Array.from(players)[i].name === player.name) {
@@ -473,25 +484,18 @@ wss.on('connection', (ws) => {
                 let you = JSON.parse(args[2]);
                 let them = JSON.parse(args[3]);
 
-                // check if the trade is for the same resource
-                equal = false;
-                for (let key of Object.keys(you)) {
-                    if (key in them) {
-                        equal = true;
-                    }
-                }
-                if (equal) {
-                    ws.send('error You may not trade like resources (e.g., 2 brick → 1 brick)', true);
+                if (!isTradeLegal(you, them)) {
                     return;
                 }
 
-                // check if player has resources
-                if (!player.hasResources(you)) {
-                    ws.send('error Insufficient resources');
-                    return false;
-                }
-
-                function isMaritimeTradeLegal(you, them, antecedent) {
+                /**
+                 * Checks if the ratio between two sides of a trade is valid.
+                 * @param {Object} you - The first side of the trade.
+                 * @param {Object} them - The second side of the trade.
+                 * @param {number} antecedent - The antecedent value used for the ratio calculation.
+                 * @returns {boolean} - Returns true if the ratio is valid, false otherwise.
+                 */
+                function isRatio(you, them, antecedent) {
                     let youTotal = Object.values(you).reduce((a, b) => a + b, 0);
                     let themTotal = Object.values(them).reduce((a, b) => a + b, 0);
 
@@ -504,19 +508,30 @@ wss.on('connection', (ws) => {
                     return true;
                 }
 
-                var legal = false;
                 for (let i = 2; i <= 4; i++) {
-                    if (isMaritimeTradeLegal(you, them, i)) {
-                        legal = true;
-                        break;
+                    if (i == 2) {
+                        let hasHarbors = true;
+                        for (let key of Object.keys(you)) {
+                            if (!player.harbors.includes(key)) {
+                                hasHarbors = false;
+                            }
+                        }
+                        if (!hasHarbors) {
+                            continue;
+                        }
+                    }
+                    else if (i == 3 && !player.harbors.includes("generic")) {
+                        continue;
+                    }
+                    if (isRatio(you, them, i)) {
+                        player.substractResources(you);
+                        player.addResources(them);
+                        broadcastPlayers();
+                        return;
                     }
                 }
 
-                if (legal) {
-                    player.substractResources(you);
-                    player.addResources(them);
-                    broadcastPlayers();
-                }
+                ws.send('error Invalid maritime trade');
             }
             else if (args[1] === 'accept') {
                 let you = Array.from(players).find(player => player.name === args[2]);
@@ -700,7 +715,6 @@ wss.on('connection', (ws) => {
 
                 // check if settlement is placed on a harbor
                 const adjacentEdges = Vertex.adjacentEdges(row, col);
-                console.log(adjacentEdges);
                 for (let i = 0; i < adjacentEdges.length; i++) {
                     const edge = adjacentEdges[i];
                     if (map.harborMap[edge[0]][edge[1]] != 0) {
