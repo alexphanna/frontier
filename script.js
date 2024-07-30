@@ -841,6 +841,13 @@ function showBuild() {
             largestArmy.style.fontWeight = 'bold';
             content.appendChild(largestArmy);
         }
+        
+        if (player.specials["longestRoad"]) {
+            let longestRoad = document.createElement('h3');
+            longestRoad.textContent = 'Longest Road';
+            longestRoad.style.fontWeight = 'bold';
+            content.appendChild(longestRoad);
+        }
 
         let resourcesHeading = document.createElement('h3');
         resourcesHeading.textContent = 'Resources:';

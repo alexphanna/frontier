@@ -14,11 +14,11 @@ class Player {
             largestArmy: false
         }
         this.resources = {
-            brick: 0,
-            grain: 0,
-            lumber: 0,
-            ore: 0,
-            wool: 0
+            brick: 20,
+            grain: 20,
+            lumber: 20,
+            ore: 20,
+            wool: 20
         };
         this.developments = {
             knight: 0,
@@ -75,12 +75,15 @@ class Vertex {
         }
 
         // top and bottom
-        if (row <= 2 && row > 0) {
+        if (row <= 2 && row >= 0) {
             edges.push([row * 2 + (col % 2 == 1 ? -1 : 1), Math.floor(col / 2)]);
         }
         else if (row >= 3 && row < settlementVertices.length - 1) {
             edges.push([row * 2 + (col % 2 == 1 ? 1 : -1), Math.floor(col / 2)]);
         }
+
+        // remove negatives
+        edges = edges.filter(edge => edge[0] >= 0 && edge[1] >= 0);
 
         // remove repeats
         for (let i = 0; i < edges.length; i++) {
@@ -359,6 +362,7 @@ for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
 }
 
 let edges = [];
+let roads = [];
 for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
     let temp1 = [];
     let temp2 = [];
@@ -369,11 +373,15 @@ for (let i = Math.ceil(map.terrainMap.length / 2) - 1; i >= 0; i--) {
         temp2.push(NaN);
     }
     edges.push(Array.from(temp1));
+    roads.push(Array.from(temp1));
     if (i != Math.ceil(map.terrainMap.length / 2) - 1) {
         edges.unshift(Array.from(temp1));
+        roads.unshift(Array.from(temp1));
     }
     edges.push(Array.from(temp2));
     edges.unshift(Array.from(temp2));
+    roads.push(Array.from(temp2));
+    roads.unshift(Array.from(temp2));
 }
 
 function broadcastPlayers() {
@@ -389,6 +397,71 @@ function broadcastPlayers() {
         }
         Array.from(clients)[i].send('players ' + JSON.stringify(newPlayers));
     }
+}
+
+/**
+ * Calculates the length of the longest road in the game.
+ * 
+ * @returns {Object} An object containing the length of the longest road and the player who owns it.
+ */
+function longestRoad() {
+    let maxLength = 0;
+    let longestPlayer = player;
+
+    for (let i = 0; i < settlements.length; i++) {
+        for (let j = 0; j < settlements[i].length; j++) {
+            let currentPlayer = settlements[i][j];
+            let roadLength = countRoad(i, j, currentPlayer);
+
+            if (roadLength > maxLength) {
+                maxLength = roadLength;
+                longestPlayer = playerArray[currentPlayer];
+            }
+        }
+    }
+
+    return { length: maxLength, player: longestPlayer };
+}
+
+/**
+ * Counts the length of the road for a given player starting from a specific row and column.
+ * 
+ * @param {number} row - The row index of the starting position.
+ * @param {number} col - The column index of the starting position.
+ * @param {string} player - The player for whom the road length is being counted.
+ * @param {number} [prevEdgeRow=-1] - The row index of the previous edge (optional).
+ * @param {number} [prevEdgeCol=-1] - The column index of the previous edge (optional).
+ * @returns {number} - The length of the road for the given player.
+ */
+function countRoad(row, col, player, prevEdgeRow = -1, prevEdgeCol = -1) {
+    let nextRoads = [];
+    let adjacentEdges = Vertex.adjacentEdges(row, col);
+
+    for (let edge of adjacentEdges) {
+        if (roads[edge[0]][edge[1]] === player && !(edge[0] === prevEdgeRow && edge[1] === prevEdgeCol)) {
+            nextRoads.push(edge);
+        }
+    }
+
+    if (nextRoads.length === 0) return 0;
+
+    let roadLengths = nextRoads.map(edge => {
+        let adjacentVertices = Edge.adjacentVertices(edge[0], edge[1]);
+        let maxLength = 1;
+
+        for (let vertex of adjacentVertices) {
+            if (vertex[0] !== row || vertex[1] !== col) {
+                maxLength += countRoad(vertex[0], vertex[1], player, edge[0], edge[1]);
+            }
+        }
+
+        return maxLength;
+    });
+
+    let firstMax = Math.max(...roadLengths);
+    let secondMax = roadLengths.length > 1 ? Math.max(...roadLengths.filter(length => length !== firstMax)) : 0;
+
+    return prevEdgeCol === -1 ? firstMax + secondMax : firstMax;
 }
 
 wss.on('connection', (ws) => {
@@ -783,7 +856,6 @@ wss.on('connection', (ws) => {
                 }
                 if (round === 1) {
                     let playerEdges = Vertex.adjacentEdges(player.prevVertex[0], player.prevVertex[1]);
-                    console.log(playerEdges);
                     if (playerEdges.find(edge => edge[0] === row && edge[1] === col) === undefined) {
                         ws.send('error Illegal road placement');
                         return;
@@ -823,6 +895,21 @@ wss.on('connection', (ws) => {
                 log(player.name + ' built a road');
                 player.buildings["roads"]--;
                 edges[row][col] = players.size;
+                roads[row][col] = turn % players.size;
+
+                // Update longest road
+                let road = longestRoad();
+                console.log("longest road: " + road.length);
+                if (road.length >= 5) {
+                    for (let i = 0; i < players.size; i++) {
+                        if (playerArray[i].specials["longestRoad"]) {
+                            playerArray[i].specials["longestRoad"] = false;
+                            playerArray[i].points -= 2;
+                        }
+                    }
+                    road.player.specials["longestRoad"] = true;
+                    road.player.points += 2;
+                }
 
                 const adjacentVertices = Edge.adjacentVertices(row, col);
                 for (let i = 0; i < adjacentVertices.length; i++) {
