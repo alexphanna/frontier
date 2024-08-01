@@ -1,0 +1,252 @@
+import { game, player, server, connect } from '../main.js';
+import Building from './building.js';
+import Map from "./map.js"
+import { showBuild, showChat } from './sidebar.js';
+import { KnightInput, TradeNotification } from './notifications.js';
+
+export function build(type) {
+    let svg = document.getElementById('map');
+    game.currentType = type;
+    svg.getElementById('settlementVertices').style.visibility = "hidden";
+    svg.getElementById('cityVertices').style.visibility = "hidden";
+    if (!game.roadBuilding) svg.getElementById('edges').style.visibility = "hidden";
+    if (type == "settlement" || type == "city") {
+        // check if road building is active
+        if (game.roadBuilding) {
+            new Notification('Build two roads');
+            return;
+        }
+
+        if (type == "settlement") svg.getElementById('settlementVertices').style.visibility = "visible";
+        else if (type == "city") svg.getElementById('cityVertices').style.visibility = "visible";
+    }   
+    else if (type == "road") {
+        svg.getElementById('edges').style.visibility = "visible";
+    }
+}
+
+export function develop() {
+    server.send('develop');
+}
+
+export function endTurn() {
+    // check if this can just be document
+    let svg = document.getElementById('map');
+    svg.getElementById('settlementVertices').style.visibility = "hidden";
+    svg.getElementById('cityVertices').style.visibility = "hidden";
+    svg.getElementById('edges').style.visibility = "hidden";
+    server.send('end turn');
+    document.getElementById('actions').style.visibility = 'hidden';
+}
+
+export function ready() {
+    server.send('ready');
+    let readyButton = document.getElementById('readyButton');
+    readyButton.textContent = 'UNREADY';
+    readyButton.onclick = unready;
+}
+
+export function unready() {
+    server.send('unready');
+    let readyButton = document.getElementById('readyButton');
+    readyButton.textContent = 'READY';
+    readyButton.onclick = ready;
+}
+
+function updateLobby(players) {
+    document.getElementById('playersHeading').textContent = `Players (${players.length}/4)`;
+    let playersDiv = document.getElementById('players');
+    playersDiv.innerHTML = '';
+    for (let player of players) {
+        let playerHeading = playersDiv.appendChild(document.createElement('h2'));
+        playerHeading.style.color = player.color;
+        playerHeading.style.fontWeight = 'bold';
+        playerHeading.textContent = `${player.name}`;
+        playersDiv.appendChild(playerHeading);
+    }
+}
+
+export function join() {
+    player.name = document.getElementById('name').value;
+    let address = document.getElementById('address').value;
+
+    let input = document.getElementById('chatInput');
+    input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' && input.value !== '') {
+            server.send(`chat ${player.name} ${input.value}`);
+            input.value = '';
+        }
+    });
+
+    let svg = document.getElementById('map');
+
+    if(player.name === '') return;
+    // Check if name contains spaces
+    if (player.name.indexOf(' ') !== -1) {
+        new Notification('Name cannot contain spaces', true);
+        return;
+    }
+
+    connect(address);
+    server.onerror = function () {
+        new Notification("Could not connect to server", true);
+    }
+    server.onopen = function () {
+        document.getElementById("menu").style.display = "none";
+        document.getElementById("lobby").removeAttribute("style");
+
+        server.send(`add ${player.name}`);
+    }
+    server.onmessage = function (event) {
+        console.log(event.data);
+
+        const args = String(event.data).split(' ');
+
+        if (args[0] === 'players') {
+            game.players = JSON.parse(args[1]);
+            updateLobby(game.players);
+            if (document.getElementById('buildButton').disabled) {
+                showBuild();
+            }
+        }
+        else if (args[0] === 'trade') {
+            if (args[1] === 'domestic') {
+                new TradeNotification(args[2], args[3], args[4], args[5]);
+            }
+            else if (args[1] === 'unoffer') {
+                document.getElementById(args[2]).remove();
+            }
+        }
+        else if (args[0] === 'build') {
+            document.getElementById('placeSound').play();
+            if (args[1] === 'settlement') {
+                const vertex = game.map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
+                const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
+                document.getElementById('buildings').appendChild(building);
+            }
+            else if (args[1] == 'city') {
+                const vertex = game.map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
+                const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
+                let settlements = document.getElementById('buildings').getElementsByClassName('settlement');
+                for (let i = 0; i < settlements.length; i++) {
+                    const temp = Building.shapeToPoint(settlements[i].getAttribute('points'), 'settlement');
+                    const point = game.map.vertexToStandard(temp.x, temp.y);
+                    if (point.row == parseInt(args[2]) && point.col == parseInt(args[3])) {
+                        document.getElementById("buildings").removeChild(settlements[i]);
+                        break;
+                    }
+                }
+                document.getElementById('buildings').appendChild(building);
+            }
+            else if (args[1] === 'road') {
+                const edge = game.map.standardToEdge(parseInt(args[2]), parseInt(args[3]));
+                const road = Building.createRoad(edge.x, edge.y, args[4], args[5], "black");
+                document.getElementById('roads').appendChild(road);
+            }
+        }
+        else if (args[0] === 'map') {
+            const maps = JSON.parse(args[1]);
+            game.map = new Map(svg, maps.terrainMap, maps.numberMap, maps.harborMap);
+        }
+        else if (args[0] === 'robber') {
+            game.map.moveRobber(parseInt(args[1]), parseInt(args[2]));
+        }
+        else if (args[0] === 'knight') {
+            if (JSON.parse(args.slice(1)).length === 0) {
+                return;
+            }   
+            else if (JSON.parse(args.slice(1)).length === 1) {
+                server.send(`knight ${JSON.parse(args.slice(1))[0]}`);
+            }
+            else {
+                new KnightInput(JSON.parse(args.slice(1)));
+            }
+        }
+        else if (args[0] === 'chat' || args[0] === 'log') {
+            game.chat.push(args[0] === 'chat' ? [args[1], args.slice(2).join(' ')] : [args.slice(1).join(' ')]);
+            if (document.getElementById('chatButton').disabled) {
+                showChat();
+            }
+        }
+        else if (args[0] === 'error') {
+            new Notification(args.slice(1).join(' '), true);
+        }
+        else if (args[0] === 'notification') {
+            new Notification(args.slice(1).join(' '));
+        }
+        else if (args[0] === 'start') {
+            if (args[1] === 'game') {
+                document.getElementById('lobby').style.display = 'none';
+                document.getElementById('navbar').style.display = 'none';
+                document.getElementById('game').style.visibility = 'visible';
+                showBuild();
+            }
+            else if (args[1] === 'turn') {
+                document.getElementById('actions').style.visibility = 'visible';
+            }
+        }
+        else if (args[0] === 'roll') {
+            game.map.highlightTokens(parseInt(args[1]));
+        }
+        else if (args[0] === 'vertices') {
+            var legalVertices = JSON.parse(args[2]);
+            var vertices = svg.getElementById(`${args[1]}Vertices`);
+            vertices.innerHTML = '';
+            for (let i = 0; i < legalVertices.length; i++) {
+                for (let j = 0; j < legalVertices[i].length; j++) {
+                    if (legalVertices[i][j]) {
+                        const vertex = game.map.standardToVertex(i, j);
+                        let settlement = Building.createBuilding(vertex.x, vertex.y, "transparent", "#ffffffc0", "settlement");
+                        settlement.addEventListener('click', function () {
+                            vertices.style.visibility = "hidden";
+                            server.send(`build ${game.currentType} ${i} ${j} ${player.color}`);
+                        });
+                        settlement.addEventListener('mouseover', function () {
+                            settlement.setAttribute("stroke", "#ffff00c0");
+                        });
+                        settlement.addEventListener('mouseout', function () {
+                            settlement.setAttribute("stroke", "#ffffffc0");
+                        });
+                        vertices.appendChild(settlement);
+                    }
+                }
+            }
+        }
+        else if (args[0] === 'edges') {
+            var legalEdges = JSON.parse(args[1]);
+            var edges = svg.getElementById('edges');
+            edges.innerHTML = '';
+            for (let i = 0; i < legalEdges.length; i++) {
+                for (let j = 0; j < legalEdges[i].length; j++) {
+                    if (legalEdges[i][j]) {
+                        const edge = game.map.standardToEdge(i, j);
+
+                        let road = Building.createRoad(edge.x, edge.y, edge.angle, "transparent", "#ffffffc0");
+                        road.addEventListener('click', function () {
+                            if (game.roadBuilding) {
+                                game.roadBuilt++;
+                                if (game.roadBuilt == 2) {
+                                    game.roadBuilding = false;
+                                    game.roadsBuilt = 0;
+                                    edges.style.visibility = "hidden";
+                                }
+                            }
+                            else edges.style.visibility = "hidden";
+                            server.send(`build road ${i} ${j} ${edge.angle} ${player.color}`);
+                        });
+                        road.addEventListener('mouseover', function () {
+                            road.setAttribute("stroke", "#ffff00c0");
+                        });
+                        road.addEventListener('mouseout', function () {
+                            road.setAttribute("stroke", "#ffffffc0");
+                        });
+                        edges.appendChild(road);
+                    }
+                }
+            }
+        }
+        else if (args[0] === 'color') {
+            player.color = args[1];
+        }
+    }
+}

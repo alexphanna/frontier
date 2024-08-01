@@ -1,6 +1,4 @@
 # Catan
-## Abstract
-Catan in HTML, JavaScript and CSS
 
 <img src="screenshot.png" />
 
