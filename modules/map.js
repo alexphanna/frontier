@@ -243,26 +243,15 @@ export default class Map {
         tile.setAttribute("class", "tile")
         let hexagon = Map.createHexagon(x, y, width);
         hexagon.classList.add("hexagon");
-        switch (terrain) {
-            case "Hills":
-                hexagon.setAttribute("fill", "#800000");
-                break;
-            case "Pasture":
-                hexagon.setAttribute("fill", "#008000");
-                break;
-            case "Mountains":
-                hexagon.setAttribute("fill", "#404040");
-                break;
-            case "Fields":
-                hexagon.setAttribute("fill", "#C0C000");
-                break;
-            case "Forest":
-                hexagon.setAttribute("fill", "#004000");
-                break;
-            case "Desert":
-                hexagon.setAttribute("fill", "#c08040");
-                break;
+        const terrainColors = {
+            "Hill": "#800000",
+            "Pasture": "#008000",
+            "Mountain": "#404040",
+            "Field": "#C0C000",
+            "Forest": "#004000",
+            "Desert": "#c08040"
         }
+        hexagon.setAttribute("fill", terrainColors[terrain]);
         hexagon.setAttribute("stroke", "black");
         hexagon.setAttribute("stroke-width", ".5");
         tile.appendChild(hexagon);

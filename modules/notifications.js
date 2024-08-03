@@ -1,4 +1,4 @@
-import { game, player, server } from '../main.js';
+import { game, myPlayer, server } from '../main.js';
 
 function createButton(text) {
     let button = document.createElement('button');
@@ -125,13 +125,16 @@ export class ErrorNotification extends Notification {
 }
 
 export class TradeNotification extends Notification {
-    constructor(name, you, them, id, duration = 5000) {
-        super(name, duration);
+    constructor(name, you, them, id) {
+        super(name, 0);
+
+        this.notification.style.textAlign = 'left';
+        this.notification.id = id;
 
         this.heading.style.fontWeight = 'bold';
-        this.heading.style.color = game.players.find(player => player.name === name).color;
+        this.heading.style.color = game.players.find(myPlayer => myPlayer.name === name).color;
         let span = document.createElement('span');
-        span.textContent = `: ${this.stringifyResources(JSON.parse(them))} → ${this.stringifyResources(JSON.parse(you))}`;
+        span.textContent = `: ${TradeNotification.stringifyResources(JSON.parse(them))} → ${TradeNotification.stringifyResources(JSON.parse(you))}`;
         this.heading.appendChild(span);
         
         const removeTradeOffer = () => this.notifications.removeChild(this.notification);
@@ -141,7 +144,7 @@ export class TradeNotification extends Notification {
         buttons.style.flexDirection = 'row-reverse';
         let acceptButton = createButton('ACCEPT');
         acceptButton.addEventListener('click', () => {
-            server.send(`trade accept ${name} ${you} ${player.name} ${them} ${id}`);
+            server.send(`trade accept ${name} ${you} ${myPlayer.name} ${them} ${id}`);
             removeTradeOffer();
         });
         buttons.appendChild(acceptButton);
@@ -222,7 +225,7 @@ export class KnightInput extends Notification {
         
         for (let name of names) {
             let playerButton = createButton(name.toUpperCase());
-            playerButton.style.color = game.players.find(player => player.name === name).color;
+            playerButton.style.color = game.players.find(myPlayer => myPlayer.name === name).color;
             playerButton.addEventListener('click', () => {
                 server.send(`knight ${name}`);
                 this.notifications.removeChild(this.notification);

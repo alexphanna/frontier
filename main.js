@@ -50,9 +50,9 @@ export const game = {
  * The player object representing the current player.
  * @type {Player}
  */
-export const player = {
-    name: null,
-    color: null
+export const myPlayer = {
+    name: "",
+    color: ""
 }
 
 /**

@@ -1,4 +1,4 @@
-import { game, server, player as myPlayer } from '../main.js';
+import { game, server, myPlayer } from '../main.js';
 import { MonopolyInput, ResourceInput, YearOfPlentyInput, removeZeroes } from './notifications.js';
 import { build } from "./actions.js"
 
@@ -46,7 +46,7 @@ export function showBuild() {
         let resourcesHeading = document.createElement('h3');
         resourcesHeading.textContent = 'Resources:';
         content.appendChild(resourcesHeading);
-        if (player.name === player.name) {
+        if (player.name === myPlayer.name) {
             let resources = document.createElement('ul');
             for (let resource in player.resources) {
                 resources.appendChild(document.createElement('li')).textContent = `${resource.charAt(0).toUpperCase() + resource.slice(1)}: ${player.resources[resource]}`;

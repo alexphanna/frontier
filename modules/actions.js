@@ -1,8 +1,8 @@
-import { game, player, server, connect } from '../main.js';
+import { game, myPlayer, server, connect } from '../main.js';
 import Building from './building.js';
 import Map from "./map.js"
 import { showBuild, showChat } from './sidebar.js';
-import { KnightInput, TradeNotification } from './notifications.js';
+import { Notification, ErrorNotification, KnightInput, TradeNotification } from './notifications.js';
 
 export function build(type) {
     let svg = document.getElementById('map');
@@ -67,35 +67,35 @@ function updateLobby(players) {
 }
 
 export function join() {
-    player.name = document.getElementById('name').value;
+    myPlayer.name = document.getElementById('name').value;
     let address = document.getElementById('address').value;
 
     let input = document.getElementById('chatInput');
     input.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' && input.value !== '') {
-            server.send(`chat ${player.name} ${input.value}`);
+            server.send(`chat ${myPlayer.name} ${input.value}`);
             input.value = '';
         }
     });
 
     let svg = document.getElementById('map');
 
-    if(player.name === '') return;
+    if(myPlayer.name === '') return;
     // Check if name contains spaces
-    if (player.name.indexOf(' ') !== -1) {
-        new Notification('Name cannot contain spaces', true);
+    if (myPlayer.name.indexOf(' ') !== -1) {
+        new ErrorNotification('Name cannot contain spaces');
         return;
     }
 
     connect(address);
     server.onerror = function () {
-        new Notification("Could not connect to server", true);
+        new ErrorNotification("Could not connect to server");
     }
     server.onopen = function () {
         document.getElementById("menu").style.display = "none";
         document.getElementById("lobby").removeAttribute("style");
 
-        server.send(`add ${player.name}`);
+        server.send(`add ${myPlayer.name}`);
     }
     server.onmessage = function (event) {
         console.log(event.data);
@@ -114,7 +114,9 @@ export function join() {
                 new TradeNotification(args[2], args[3], args[4], args[5]);
             }
             else if (args[1] === 'unoffer') {
-                document.getElementById(args[2]).remove();
+                if (document.getElementById(args[2]) !== null) {
+                    document.getElementById(args[2]).remove();
+                }
             }
         }
         else if (args[0] === 'build') {
@@ -169,7 +171,7 @@ export function join() {
             }
         }
         else if (args[0] === 'error') {
-            new Notification(args.slice(1).join(' '), true);
+            new ErrorNotification(args.slice(1).join(' '));
         }
         else if (args[0] === 'notification') {
             new Notification(args.slice(1).join(' '));
@@ -199,7 +201,7 @@ export function join() {
                         let settlement = Building.createBuilding(vertex.x, vertex.y, "transparent", "#ffffffc0", "settlement");
                         settlement.addEventListener('click', function () {
                             vertices.style.visibility = "hidden";
-                            server.send(`build ${game.currentType} ${i} ${j} ${player.color}`);
+                            server.send(`build ${game.currentType} ${i} ${j} ${myPlayer.color}`);
                         });
                         settlement.addEventListener('mouseover', function () {
                             settlement.setAttribute("stroke", "#ffff00c0");
@@ -232,7 +234,7 @@ export function join() {
                                 }
                             }
                             else edges.style.visibility = "hidden";
-                            server.send(`build road ${i} ${j} ${edge.angle} ${player.color}`);
+                            server.send(`build road ${i} ${j} ${edge.angle} ${myPlayer.color}`);
                         });
                         road.addEventListener('mouseover', function () {
                             road.setAttribute("stroke", "#ffff00c0");
@@ -246,7 +248,7 @@ export function join() {
             }
         }
         else if (args[0] === 'color') {
-            player.color = args[1];
+            myPlayer.color = args[1];
         }
     }
 }
