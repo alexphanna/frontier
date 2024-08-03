@@ -1,38 +1,14 @@
 # Catan
-
-<img src="screenshot.png" />
-
+A web-based multiplayer game inspired by the game mechanics of [Catan](https://en.wikipedia.org/wiki/Catan). 
+## Requirements
+- [catan-server](https://github.com/alexphanna/catan-server)
+- http server
 ## Features
-- [x] Random map generation
-- [x] Grid-snapping buildings (Settlements, cities, and roads)
-- [x] Multiplayer
-    - [x] Server and client communication (WebSocket server)
-    - [x] Map
-    - [x] Buildings
-    - [x] Dice
-    - [x] Player information (Victory points, name, etc.)
-    - [x] Turn logic
-- [ ] User interface
-    - [x] Glassmorphism
-    - [x] Display current players and their color
-    - [x] Display development cards
-    - [x] Display resources
-    - [ ] Color picker (maybe just options not every color)
-- [ ] Support for more than 4 players
-- [x] Harbors
-- [x] Development cards
-    - [x] Knight
-    - [x] Road building
-    - [x] Monopoly
-    - [x] Year of plenty
-    - [x] Victory point
-- [x] Robber
-- [x] Better server-client communication language
-- [x] Complete server-side validation w/ errors and stuff
-- [x] Longest road
-- [x] Largest army
-- [x] Map zooming and moving
-- [ ] Game settings and client settings
-- [x] Sound effects when place buildings and stuff
-- [x] Trading
-- [x] Maritime trade
+- Turn-based 4 player multiplayer using the websocket protocol
+- SVG graphics for the zoomable map (Hexagonal tiles)
+- Trading resources between players
+- Chat with logged player actions
+- Server-side action validation
+- Vertex, edge, and tile universal coordinate systems
+## Screenshots
+<img src="screenshot.png" />
