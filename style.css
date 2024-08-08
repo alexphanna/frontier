@@ -19,6 +19,7 @@ div#game {
 svg {
     /* border: 1px solid #ff0000; */
     position: absolute;
+    transform-origin: center;
 }
 
 polygon,

@@ -135,33 +135,38 @@ export default class Map {
                 svg.removeEventListener('mousemove', mouseMove);
             });
         });
-        
+
+        let scale = 1;
+        const deafultWidth = svg.width.baseVal.value;
+        const defaultHeight = svg.height.baseVal.value;
+
         svg.addEventListener('wheel', function (event) {
-            function resize(svg, percent) {
-                const rect = svg.getBoundingClientRect();
-                const width = svg.width.baseVal.value;
-                const newWidth = width * percent;
-                const height = svg.height.baseVal.value;
-                const newHeight = height * percent;
-        
-                svg.setAttribute('width', newWidth);
-                svg.setAttribute('height', newHeight);
-        
-                const deltaX = (newWidth - width) / 2;
-                const deltaY = (newHeight - height) / 2;
-                const newLeft = rect.left - deltaX;
-                const newTop = rect.top - deltaY;
-        
-                Map.move(svg, newLeft, newTop);
+            event.preventDefault();
+            
+            function resize(svg, percent, event) {
+                const oldRect = svg.getBoundingClientRect();
+                const oldX = event.clientX - oldRect.left;
+                const oldY = event.clientY - oldRect.top;
+                
+                svg.style.width = `${deafultWidth * percent}px`;
+                svg.style.height = `${defaultHeight * percent}px`;
+
+                const x = oldX / oldRect.width * parseInt(svg.style.width);
+                const y = oldY / oldRect.height * parseInt(svg.style.height);
+                const left = oldRect.left + (oldX - x);
+                const top = oldRect.top + (oldY - y);
+                
+                Map.move(svg, left, top);
             }
-        
-            if (event.deltaY > 0 && svg.width.baseVal.value > 300) {
-                resize(svg, .9);
-            } else if (event.deltaY < 0) {
-                resize(svg, 1.1);
+
+            if (event.deltaY > 0 && scale > .5) {
+                resize(svg, scale -= .1, event);
+            } else if (event.deltaY < 0 && scale < 3) {
+                resize(svg, scale += .1, event);
             }
         });
     }
+
     static center(svg) {
         const rect = svg.getBoundingClientRect();
         const left = (window.innerWidth - rect.width) / 2;
