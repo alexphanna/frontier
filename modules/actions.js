@@ -36,7 +36,7 @@ export function endTurn() {
     svg.getElementById('cityVertices').style.visibility = "hidden";
     svg.getElementById('edges').style.visibility = "hidden";
     server.send('end turn');
-    document.getElementById('actions').style.visibility = 'hidden';
+    //document.getElementById('actions').style.visibility = 'hidden';
 }
 
 export function ready() {
@@ -69,14 +69,6 @@ function updateLobby(players) {
 export function join() {
     myPlayer.name = document.getElementById('name').value;
     let address = document.getElementById('address').value;
-
-    let input = document.getElementById('chatInput');
-    input.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter' && input.value !== '') {
-            server.send(`chat ${myPlayer.name} ${input.value}`);
-            input.value = '';
-        }
-    });
 
     let svg = document.getElementById('map');
 
@@ -184,7 +176,7 @@ export function join() {
                 showBuild();
             }
             else if (args[1] === 'turn') {
-                document.getElementById('actions').style.visibility = 'visible';
+                //document.getElementById('actions').style.visibility = 'visible';
             }
         }
         else if (args[0] === 'roll') {

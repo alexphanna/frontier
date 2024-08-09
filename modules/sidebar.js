@@ -1,8 +1,15 @@
 import { game, server, myPlayer } from '../main.js';
 import { MonopolyInput, ResourceInput, YearOfPlentyInput, removeZeroes } from './notifications.js';
 import { build } from "./actions.js"
+import actionNav from './actionNav.js';
 
 function setActiveButton(button) {
+    while (document.getElementById('sidebar').children.length > 1) {
+        document.getElementById('sidebar').removeChild(document.getElementById('sidebar').lastChild);
+    }
+    let content = document.createElement('div');
+    content.id = 'sideContent';
+    document.getElementById('sidebar').appendChild(content);
     document.getElementById('buildButton').disabled = (button === 'build' ? true : false);
     document.getElementById('tradeButton').disabled = (button === 'trade' ? true : false);
     document.getElementById('chatButton').disabled = (button === 'chat' ? true : false);
@@ -10,8 +17,6 @@ function setActiveButton(button) {
 
 export function showBuild() {
     setActiveButton('build');
-    document.getElementById('actions').style.removeProperty('display');
-    document.getElementById('chatInput').style.display = 'none';
     let content = document.getElementById('sideContent');
     content.innerHTML = '';
     content.style.textAlign = 'left';
@@ -52,24 +57,6 @@ export function showBuild() {
                 resources.appendChild(document.createElement('li')).textContent = `${resource.charAt(0).toUpperCase() + resource.slice(1)}: ${player.resources[resource]}`;
             }
             content.appendChild(resources);
-            let actionButtons = document.getElementById('actions').getElementsByTagName('button');
-            for (let button of actionButtons) {
-                if (button.id === 'settlementButton') {
-                    // button.disabled = player.resources["brick"] < 1 || player.resources["lumber"] < 1 || player.resources["wool"] < 1 || player.resources["grain"] < 1;
-                    button.textContent = `SETTLEMENT (${player.buildings["settlements"]})`;
-                }
-                else if (button.id === 'cityButton') {
-                    // button.disabled = (player.resources["grain"] < 2 || player.resources["ore"] < 3);
-                    button.textContent = `CITY (${player.buildings["cities"]})`;
-                }
-                else if (button.id === 'roadButton') {
-                    // button.disabled = player.resources["brick"] < 1 || player.resources["lumber"] < 1;
-                    button.textContent = `ROAD (${player.buildings["roads"]})`;
-                }
-                else if (button.id === 'developButton') {
-                    // button.disabled = player.resources["grain"] < 1 || player.resources["wool"] < 1 || player.resources["ore"] < 1;
-                }
-            }
         }
         else {
             resourcesHeading.textContent += ` ${player.resources}`;
@@ -84,11 +71,17 @@ export function showBuild() {
             content.appendChild(knights);
         }
 
+        let actions = new actionNav();
+        actions.appendAction('SETTLEMENT', () => { build('settlement'); });
+        actions.appendAction('CITY', () => { build('city'); }, "50%");
+        actions.appendAction('ROAD', () => { build('road'); }, "50%");
+        actions.appendAction('DEVELOP', () => { develop(); }, "50%");
+        actions.appendAction('END TURN', () => { endTurn(); }, "50%");
+        document.getElementById('sidebar').appendChild(actions);
+
         content.appendChild(document.createElement('br'));
 
         if (player.name === myPlayer.name) {
-            let developments = document.getElementById('developments');
-            developments.innerHTML = '';
             const capitalize = (string) => {
                 for (let i = 0; i < string.length; i++) {
                     if (string.charAt(i) === string.charAt(i).toUpperCase()) {
@@ -100,28 +93,25 @@ export function showBuild() {
             for (let i = 0; i < Object.keys(player.developments).length; i++) {
                 if (player.developments[Object.keys(player.developments)[i]] > 0
                     && Object.keys(player.developments)[i] !== 'victoryPoint') {
-                    let developmentButton = document.createElement('button');
-                    developmentButton.classList.add('developmentButton');
-                    developmentButton.id = `${Object.keys(player.developments)[i]}Button`;
-                    developmentButton.textContent = `${capitalize(Object.keys(player.developments)[i])} (${player.developments[Object.keys(player.developments)[i]]})`;
-                    if (developmentButton.id === 'knightButton') {
-                        developmentButton.addEventListener('click', () => {
+                    const textContent = `${capitalize(Object.keys(player.developments)[i])} (${player.developments[Object.keys(player.developments)[i]]})`;
+                    if (Object.keys(player.developments)[i] === 'knight') {
+                        actions.prependAction(textContent, () => {
                             game.knightPlayed = true;
                             new Notification('Move the robber');
                         });
                     }
-                    else if (developmentButton.id === 'yearOfPlentyButton') {
-                        developmentButton.addEventListener('click', () => {
+                    else if (Object.keys(player.developments)[i] === 'yearOfPlenty') {
+                        actions.prependAction(textContent, () => {
                             new YearOfPlentyInput();
                         });
                     }
-                    else if (developmentButton.id === 'monopolyButton') {
-                        developmentButton.addEventListener('click', () => {
+                    else if (Object.keys(player.developments)[i] === 'monopoly') {
+                        actions.prependAction(textContent, () => {
                             new MonopolyInput();
                         });
                     }
-                    else if (developmentButton.id === 'roadBuildingButton') {
-                        developmentButton.addEventListener('click', () => {
+                    else if (Object.keys(player.developments)[i] === 'roadBuilding') {
+                        actions.prependAction(textContent, () => {
                             server.send('progress roadBuilding');
                             game.roadBuilding = true;
                             game.roadsBuilt = 0;
@@ -130,7 +120,6 @@ export function showBuild() {
                             new Notification('Build two roads');
                         });
                     }
-                    developments.appendChild(developmentButton);
                 }
             }
         }
@@ -139,8 +128,6 @@ export function showBuild() {
 
 export function showTrade() {
     setActiveButton('trade');
-    document.getElementById('actions').style.display = 'none';
-    document.getElementById('chatInput').style.display = 'none';
     let content = document.getElementById('sideContent');
     content.innerHTML = '';
     content.style.textAlign = 'center';
@@ -156,33 +143,37 @@ export function showTrade() {
     let themResourceInput = new ResourceInput();
     content.appendChild(themResourceInput.input);
 
-    let domesticButton = document.createElement('button');
-    domesticButton.textContent = 'DOMESTIC';
-
-    domesticButton.addEventListener('click', () => {
+    let actions = new actionNav();
+    actions.appendAction('DOMESTIC', () => {
         let you = removeZeroes(youResourceInput.resources);
         let them = removeZeroes(themResourceInput.resources);
         server.send(`trade domestic ${myPlayer.name} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
         showTrade();
-    });
-    content.appendChild(domesticButton);
-    
-    let maritimeButton = document.createElement('button');
-    maritimeButton.textContent = 'MARITIME';
-
-    maritimeButton.addEventListener('click', () => {
+    }, "50%");
+    actions.appendAction('MARITIME', () => {
         let you = removeZeroes(youResourceInput.resources);
         let them = removeZeroes(themResourceInput.resources);
         server.send(`trade maritime ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))}`);
         showTrade();
-    });
-    content.appendChild(maritimeButton);
+    }, "50%");
+    document.getElementById('sidebar').appendChild(actions);
 }
 
 export function showChat() {
     setActiveButton('chat');
-    document.getElementById('actions').style.display = 'none';
-    document.getElementById('chatInput').style.removeProperty('display');
+    
+
+    let input = document.createElement('input');
+    input.id = 'chatInput';
+    input.placeholder = 'Type a message...';
+    input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' && input.value !== '') {
+            server.send(`chat ${myPlayer.name} ${input.value}`);
+            input.value = '';
+        }
+    });
+    document.getElementById('sidebar').appendChild(input);
+
     let content = document.getElementById('sideContent');
     content.innerHTML = '';
     content.style.textAlign = 'left';

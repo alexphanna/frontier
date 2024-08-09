@@ -82,6 +82,7 @@ ul li {
 
 .actionNav {
     display: flex;
+    width: 100%;
 }
 
 .actionButton {
@@ -91,6 +92,7 @@ ul li {
     background-color: #00000000;
     border: none;
     margin: 0px;
+    width: 100%;
 }
 
 div#sideContent {
@@ -197,8 +199,9 @@ button {
     margin: 20px;
     cursor: pointer;
     font-weight: bold;
-    background-color: #20202080;
+    background-color: #20202000;
     color: white;
+    border: 2px solid #80808080;
 }
 
 button:hover {
