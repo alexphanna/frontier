@@ -1,6 +1,7 @@
 class actionButton extends HTMLButtonElement {
     constructor(action, onclick, width = "100%") {
         super();
+        this.id = "actions";
         this.classList.add('actionButton');
         this.style.width = width;
         this.textContent = action;

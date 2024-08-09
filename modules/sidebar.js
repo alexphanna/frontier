@@ -71,17 +71,18 @@ export function showBuild() {
             content.appendChild(knights);
         }
 
-        let actions = new actionNav();
-        actions.appendAction('SETTLEMENT', () => { build('settlement'); });
-        actions.appendAction('CITY', () => { build('city'); }, "50%");
-        actions.appendAction('ROAD', () => { build('road'); }, "50%");
-        actions.appendAction('DEVELOP', () => { develop(); }, "50%");
-        actions.appendAction('END TURN', () => { endTurn(); }, "50%");
-        document.getElementById('sidebar').appendChild(actions);
-
         content.appendChild(document.createElement('br'));
 
         if (player.name === myPlayer.name) {
+            let actions = new actionNav();
+            actions.appendAction('SETTLEMENT', () => { build('settlement'); }, "50%");
+            actions.appendAction('CITY', () => { build('city'); }, "50%");
+            actions.appendAction('ROAD', () => { build('road'); }, "50%");
+            actions.appendAction('DEVELOP', () => { develop(); }, "50%");
+            actions.appendAction('END TURN', () => { endTurn(); });
+
+            document.getElementById('sidebar').appendChild(actions);
+
             const capitalize = (string) => {
                 for (let i = 0; i < string.length; i++) {
                     if (string.charAt(i) === string.charAt(i).toUpperCase()) {
@@ -90,6 +91,7 @@ export function showBuild() {
                 }
                 return string.toUpperCase();
             }
+            
             for (let i = 0; i < Object.keys(player.developments).length; i++) {
                 if (player.developments[Object.keys(player.developments)[i]] > 0
                     && Object.keys(player.developments)[i] !== 'victoryPoint') {

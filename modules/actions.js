@@ -36,7 +36,7 @@ export function endTurn() {
     svg.getElementById('cityVertices').style.visibility = "hidden";
     svg.getElementById('edges').style.visibility = "hidden";
     server.send('end turn');
-    //document.getElementById('actions').style.visibility = 'hidden';
+    // document.getElementById('actions').style.visibility = 'hidden';
 }
 
 export function ready() {
@@ -176,7 +176,7 @@ export function join() {
                 showBuild();
             }
             else if (args[1] === 'turn') {
-                //document.getElementById('actions').style.visibility = 'visible';
+                // document.getElementById('actions').style.visibility = 'visible';
             }
         }
         else if (args[0] === 'roll') {
