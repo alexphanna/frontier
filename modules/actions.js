@@ -1,8 +1,8 @@
-import { game, myPlayer, server, connect } from '../main.js';
+import { game, myPlayer, server, connect, ui } from '../main.js';
 import Building from './building.js';
 import Map from "./map.js"
 import { showBuild, showChat } from './sidebar.js';
-import { Notification, ErrorNotification, KnightInput, TradeNotification } from './notifications.js';
+import { Notification, ErrorNotification, KnightInput, TradeNotification } from './ui/notifications.js';
 
 export function build(type) {
     let svg = document.getElementById('map');
@@ -75,13 +75,13 @@ export function join() {
     if(myPlayer.name === '') return;
     // Check if name contains spaces
     if (myPlayer.name.indexOf(' ') !== -1) {
-        new ErrorNotification('Name cannot contain spaces');
+        ui.notifications.appendChild(new ErrorNotification("Name cannot contain spaces"));
         return;
     }
 
     connect(address);
     server.onerror = function () {
-        new ErrorNotification("Could not connect to server");
+        ui.notifications.appendChild(new ErrorNotification("Could not connect to server"));
     }
     server.onopen = function () {
         document.getElementById("menu").style.display = "none";
@@ -103,7 +103,7 @@ export function join() {
         }
         else if (args[0] === 'trade') {
             if (args[1] === 'domestic') {
-                new TradeNotification(args[2], args[3], args[4], args[5]);
+                ui.notifications.appendChild(new TradeNotification(args[2], args[3], args[4], args[5]));
             }
             else if (args[1] === 'unoffer') {
                 if (document.getElementById(args[2]) !== null) {
@@ -153,7 +153,7 @@ export function join() {
                 server.send(`knight ${JSON.parse(args.slice(1))[0]}`);
             }
             else {
-                new KnightInput(JSON.parse(args.slice(1)));
+                ui.notifications.appendChild(new KnightInput(JSON.parse(args.slice(1))));
             }
         }
         else if (args[0] === 'chat' || args[0] === 'log') {
@@ -163,10 +163,10 @@ export function join() {
             }
         }
         else if (args[0] === 'error') {
-            new ErrorNotification(args.slice(1).join(' '));
+            ui.notifications.appendChild(new ErrorNotification(args.slice(1).join(' ')));
         }
         else if (args[0] === 'notification') {
-            new Notification(args.slice(1).join(' '));
+            ui.notifications.appendChild(new Notification(args.slice(1).join(' ')));
         }
         else if (args[0] === 'start') {
             if (args[1] === 'game') {

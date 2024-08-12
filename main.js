@@ -56,6 +56,15 @@ export const myPlayer = {
 }
 
 /**
+ * Represents the user interface.
+ * @namespace ui
+ * @property {HTMLElement} notifications - The notifications element.
+ */
+export const ui = {
+    notifications: document.getElementById('notifications')
+}
+
+/**
  * The server object representing the WebSocket connection to the server.
  * @type {WebSocket|null}
  */

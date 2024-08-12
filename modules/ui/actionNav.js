@@ -9,6 +9,8 @@ class actionButton extends HTMLButtonElement {
     }
 }
 
+customElements.define('action-button', actionButton, { extends: 'button' });
+
 export default class actionNav extends HTMLDivElement {
     constructor() {
         super();
@@ -92,5 +94,4 @@ export default class actionNav extends HTMLDivElement {
     }
 }
 
-customElements.define('action-button', actionButton, { extends: 'button' });
 customElements.define('action-nav', actionNav, { extends: 'div' });

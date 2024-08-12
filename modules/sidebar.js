@@ -1,7 +1,8 @@
-import { game, server, myPlayer } from '../main.js';
-import { MonopolyInput, ResourceInput, YearOfPlentyInput, removeZeroes } from './notifications.js';
+import { game, server, myPlayer, ui } from '../main.js';
+import { MonopolyInput, ResourceInput, YearOfPlentyInput, removeZeroes } from './ui/notifications.js';
 import { build } from "./actions.js"
-import actionNav from './actionNav.js';
+import actionNav from './ui/actionNav.js';
+import { PlayerSelector } from './ui/selector.js';
 
 function setActiveButton(button) {
     while (document.getElementById('sidebar').children.length > 1) {
@@ -99,17 +100,17 @@ export function showBuild() {
                     if (Object.keys(player.developments)[i] === 'knight') {
                         actions.prependAction(textContent, () => {
                             game.knightPlayed = true;
-                            new Notification('Move the robber');
+                            ui.notifications.appendChild(new Notification('Move the robber'));
                         });
                     }
                     else if (Object.keys(player.developments)[i] === 'yearOfPlenty') {
                         actions.prependAction(textContent, () => {
-                            new YearOfPlentyInput();
+                            ui.notifications.appendChild(new YearOfPlentyInput());
                         });
                     }
                     else if (Object.keys(player.developments)[i] === 'monopoly') {
                         actions.prependAction(textContent, () => {
-                            new MonopolyInput();
+                            ui.notifications.appendChild(new MonopolyInput());
                         });
                     }
                     else if (Object.keys(player.developments)[i] === 'roadBuilding') {
@@ -119,7 +120,7 @@ export function showBuild() {
                             game.roadsBuilt = 0;
                             
                             build('road');
-                            new Notification('Build two roads');
+                            ui.notifications.appendChild(new Notification('Build two roads'));
                         });
                     }
                 }
@@ -135,7 +136,7 @@ export function showTrade() {
     content.style.textAlign = 'center';
 
     let youResourceInput = new ResourceInput(game.players.find(player => player.name === myPlayer.name).resources, 0);
-    content.appendChild(youResourceInput.input);
+    content.appendChild(youResourceInput);
 
     let downArrow = document.createElement('h2');
     downArrow.textContent = '↓';
@@ -143,7 +144,17 @@ export function showTrade() {
     content.appendChild(downArrow);
 
     let themResourceInput = new ResourceInput();
-    content.appendChild(themResourceInput.input);
+    content.appendChild(themResourceInput);
+
+    content.appendChild(document.createElement('br'));
+    
+    let recipientsHeading = document.createElement('h2');
+    recipientsHeading.textContent = 'Send to:';
+    recipientsHeading.style.color = '#E0E0E0';
+    content.appendChild(recipientsHeading);
+
+    let playerSelector = new PlayerSelector(game.players.map(player => player.name));
+    content.appendChild(playerSelector);
 
     let actions = new actionNav();
     actions.appendAction('DOMESTIC', () => {

@@ -1,4 +1,4 @@
-import { game, myPlayer, server } from '../main.js';
+import { game, myPlayer, server } from '../../main.js';
 
 function createButton(text) {
     let button = document.createElement('button');
@@ -16,8 +16,10 @@ export function removeZeroes(obj) {
     return obj;
 }
 
-export class ResourceInput {
+export class ResourceInput extends HTMLDivElement {
     constructor(limits = {}, limit = 0) {
+        super();
+
         this.resources = {
             "brick": 0,
             "grain": 0,
@@ -25,7 +27,6 @@ export class ResourceInput {
             "ore": 0,
             "wool": 0
         }
-        this.input = document.createElement('div');
         for (let resource of Object.keys(this.resources)) {
             let resourceDiv = document.createElement('div');
             resourceDiv.style.display = 'flex';
@@ -48,7 +49,7 @@ export class ResourceInput {
                 minusButton.disabled = this.resources[resource] === 0;
                 resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + this.resources[resource];
                 if (limit != 0) {
-                    for (let button of this.input.getElementsByClassName('plusButton')) {
+                    for (let button of this.getElementsByClassName('plusButton')) {
                         button.disabled = false;
                     }
                 }
@@ -67,7 +68,7 @@ export class ResourceInput {
                 minusButton.disabled = this.resources[resource] === 0;
                 resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + this.resources[resource];
                 if (limit != 0) {
-                    for (let button of this.input.getElementsByClassName('plusButton')) {
+                    for (let button of this.getElementsByClassName('plusButton')) {
                         button.disabled = Object.values(this.resources).reduce((a, b) => a + b) === limit;
                     }
                 }
@@ -78,32 +79,32 @@ export class ResourceInput {
             resourceButtons.appendChild(plusButton);
 
             resourceDiv.appendChild(resourceButtons);
-            this.input.appendChild(resourceDiv);
+            this.appendChild(resourceDiv);
         }
     }
 }
 
-export class Notification {
+customElements.define('resource-input', ResourceInput, { extends: 'div' });
+
+export class Notification extends HTMLDivElement {
     constructor(message, duration = 5000) {
-        this.notification = document.createElement('div');
-        this.notification.classList.add('interface', 'notification');
+        super();
+
+        this.classList.add('interface', 'notification');
+        this.style.textAlign = 'center';
 
         this.heading = document.createElement('h3');
         this.heading.textContent = message;
         this.heading.style.margin = '10px';
-        this.notification.appendChild(this.heading);
+        this.appendChild(this.heading);
 
-        this.notifications = document.getElementById('notifications');
-        this.notification.style.textAlign = 'center';
-        this.notifications.appendChild(this.notification);
-
-        const removeNotification = () => this.notifications.removeChild(this.notification);
+        const removeNotification = () => this.remove();
 
         if (duration !== 0) {
             let countdown = document.createElement('div');
             countdown.classList.add('countdown');
             let elapsedTime = 0;
-            this.notification.appendChild(countdown);
+            this.appendChild(countdown);
             let interval = setInterval(() => {
                 elapsedTime += 10;
                 countdown.style.width = `${((duration - elapsedTime) / duration) * 100}%`;
@@ -116,6 +117,8 @@ export class Notification {
     }
 }
 
+customElements.define('notification-element', Notification, { extends: 'div' });
+
 export class ErrorNotification extends Notification {
     constructor(message, duration = 5000) {
         super(message, duration);
@@ -124,12 +127,14 @@ export class ErrorNotification extends Notification {
     }
 }
 
+customElements.define('error-notification', ErrorNotification, { extends: 'div' });
+
 export class TradeNotification extends Notification {
     constructor(name, you, them, id) {
         super(name, 0);
 
-        this.notification.style.textAlign = 'left';
-        this.notification.id = id;
+        this.style.textAlign = 'left';
+        this.id = id;
 
         this.heading.style.fontWeight = 'bold';
         this.heading.style.color = game.players.find(myPlayer => myPlayer.name === name).color;
@@ -137,7 +142,7 @@ export class TradeNotification extends Notification {
         span.textContent = `: ${TradeNotification.stringifyResources(JSON.parse(them))} → ${TradeNotification.stringifyResources(JSON.parse(you))}`;
         this.heading.appendChild(span);
         
-        const removeTradeOffer = () => this.notifications.removeChild(this.notification);
+        const removeTradeOffer = () => this.notifications.removeChild(this);
 
         let buttons = document.createElement('div');
         buttons.style.display = 'flex';
@@ -151,7 +156,7 @@ export class TradeNotification extends Notification {
         let declineButton = createButton('DECLINE');
         declineButton.addEventListener('click', removeTradeOffer);
         buttons.appendChild(declineButton);
-        this.notification.appendChild(buttons);
+        this.appendChild(buttons);
     }
 
     static stringifyResources(resources) {
@@ -176,6 +181,8 @@ export class TradeNotification extends Notification {
     }
 }
 
+customElements.define('trade-notification', TradeNotification, { extends: 'div' });
+
 export class YearOfPlentyInput extends Notification {
     constructor() {
         super("Year of Plenty", 0);
@@ -184,18 +191,20 @@ export class YearOfPlentyInput extends Notification {
 
         let selector = new ResourceInput({}, 2);
         selector.input.style.margin = '10px';
-        this.notification.appendChild(selector.input);
+        this.appendChild(selector);
 
 
         let confirmButton = createButton('CONFIRM');
         confirmButton.addEventListener('click', () => {
             server.send(`progress yearOfPlenty ${JSON.stringify(removeZeroes(selector.resources))}`);
-            this.notifications.removeChild(this.notification);
+            this.notifications.removeChild(this);
         });
 
-        this.notification.appendChild(confirmButton);
+        this.appendChild(confirmButton);
     }
 }
+
+customElements.define('year-of-plenty-input', YearOfPlentyInput, { extends: 'div' });
 
 export class MonopolyInput extends Notification {
     constructor() {
@@ -208,14 +217,16 @@ export class MonopolyInput extends Notification {
             let button = createButton(resource.toUpperCase());
             button.addEventListener('click', () => {
                 server.send(`progress monopoly ${resource}`);
-                this.notifications.removeChild(this.notification);
+                this.notifications.removeChild(this);
             });
-            this.notification.appendChild(button);
+            this.appendChild(button);
         }
 
-        this.notifications.appendChild(this.notification);
+        this.notifications.appendChild(this);
     }
 }
+
+customElements.define('monopoly-input', MonopolyInput, { extends: 'div' });
 
 export class KnightInput extends Notification {
     constructor(names) {
@@ -228,11 +239,13 @@ export class KnightInput extends Notification {
             playerButton.style.color = game.players.find(myPlayer => myPlayer.name === name).color;
             playerButton.addEventListener('click', () => {
                 server.send(`knight ${name}`);
-                this.notifications.removeChild(this.notification);
+                this.notifications.removeChild(this);
             });
-            this.notification.appendChild(playerButton);
+            this.appendChild(playerButton);
         }
 
-        this.notifications.appendChild(this.notification);
+        this.notifications.appendChild(this);
     }
 }
+
+customElements.define('knight-input', KnightInput, { extends: 'div' });

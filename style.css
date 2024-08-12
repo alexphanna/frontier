@@ -223,9 +223,9 @@ button:disabled {
     justify-content: center;
     align-items: center;
     font-size: 20px;
-    font-family: Arial, Helvetica, sans-serif;
     margin: 0px;
     background-color: #00000000;
+    font-weight: bold;
 }
 
 .smallButton:disabled {
