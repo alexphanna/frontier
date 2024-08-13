@@ -103,7 +103,7 @@ export function join() {
         }
         else if (args[0] === 'trade') {
             if (args[1] === 'domestic') {
-                ui.notifications.appendChild(new TradeNotification(args[2], args[3], args[4], args[5]));
+                ui.notifications.appendChild(new TradeNotification(args[2], args[3], args[5], args[6]));
             }
             else if (args[1] === 'unoffer') {
                 if (document.getElementById(args[2]) !== null) {

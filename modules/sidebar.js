@@ -2,7 +2,7 @@ import { game, server, myPlayer, ui } from '../main.js';
 import { MonopolyInput, ResourceInput, YearOfPlentyInput, removeZeroes } from './ui/notifications.js';
 import { build } from "./actions.js"
 import actionNav from './ui/actionNav.js';
-import { PlayerSelector } from './ui/selector.js';
+import { PlayerSelectButton } from './ui/selectButton.js';
 
 function setActiveButton(button) {
     while (document.getElementById('sidebar').children.length > 1) {
@@ -140,36 +140,30 @@ export function showTrade() {
 
     let downArrow = document.createElement('h2');
     downArrow.textContent = '↓';
+    downArrow.style.margin = '20px';
     downArrow.style.color = '#E0E0E0';
     content.appendChild(downArrow);
 
     let themResourceInput = new ResourceInput();
     content.appendChild(themResourceInput);
-
-    content.appendChild(document.createElement('br'));
     
-    let recipientsHeading = document.createElement('h2');
-    recipientsHeading.textContent = 'Send to:';
-    recipientsHeading.style.color = '#E0E0E0';
-    content.appendChild(recipientsHeading);
-
-    let playerSelector = new PlayerSelector(game.players.map(player => player.name));
-    content.appendChild(playerSelector);
-
-    let actions = new actionNav();
-    actions.appendAction('DOMESTIC', () => {
+    let selectButton = new PlayerSelectButton('DOMESTIC', () => {
         let you = removeZeroes(youResourceInput.resources);
         let them = removeZeroes(themResourceInput.resources);
-        server.send(`trade domestic ${myPlayer.name} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
+        server.send(`trade domestic ${myPlayer.name} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(selectButton.selectedOptions)} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
         showTrade();
-    }, "50%");
-    actions.appendAction('MARITIME', () => {
+    });
+    content.appendChild(selectButton);
+
+    let maritime = document.createElement('button');
+    maritime.textContent = 'MARITIME';
+    maritime.addEventListener('click', () => {
         let you = removeZeroes(youResourceInput.resources);
         let them = removeZeroes(themResourceInput.resources);
         server.send(`trade maritime ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(removeZeroes(them))}`);
         showTrade();
-    }, "50%");
-    document.getElementById('sidebar').appendChild(actions);
+    });
+    content.appendChild(maritime);
 }
 
 export function showChat() {

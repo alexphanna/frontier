@@ -199,9 +199,8 @@ button {
     margin: 20px;
     cursor: pointer;
     font-weight: bold;
-    background-color: #20202000;
+    background-color: #20202080;
     color: white;
-    border: 2px solid #80808080;
 }
 
 button:hover {
@@ -215,7 +214,7 @@ button:disabled {
     color: #C0C0C080;
 }
 
-.smallButton {
+.smallButton, .checkButton {
     border: none;
     width: 30px;
     height: 30px;
@@ -228,7 +227,11 @@ button:disabled {
     font-weight: bold;
 }
 
-.smallButton:disabled {
+.checkButton {
+    background-color: #80808080;
+}
+
+.smallButton:disabled, .checkButton:disabled {
     background-color: #00000000;
     color: #80808080
 }
