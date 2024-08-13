@@ -6,7 +6,8 @@ export class SelectButton extends HTMLDivElement {
         this.style.display = 'flex';
         this.style.flexDirection = 'column';
         this.style.alignItems = 'center';
-        this.style.margin = '10px';
+        this.style.margin = '20px';
+        this.style.marginTop = '40px';
 
         let button = document.createElement('div');
         button.style.display = 'flex';
@@ -27,6 +28,7 @@ export class SelectButton extends HTMLDivElement {
         secondary.style.alignItems='center';
         secondary.style.justifyContent='center';
         secondary.onclick = () => {
+            secondary.textContent = secondary.textContent === '▼' ? '▲' : '▼';
             let dropdownMenu = this.querySelectorAll('div')[1];
             dropdownMenu.style.display = dropdownMenu.style.display === 'none' ? 'block' : 'none';
         };

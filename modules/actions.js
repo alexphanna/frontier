@@ -161,6 +161,9 @@ export function join() {
             if (document.getElementById('chatButton').disabled) {
                 showChat();
             }
+            else {
+                document.getElementById('chatButton').textContent = `⬤ CHAT`;
+            }
         }
         else if (args[0] === 'error') {
             ui.notifications.appendChild(new ErrorNotification(args.slice(1).join(' ')));

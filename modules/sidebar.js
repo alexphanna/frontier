@@ -168,7 +168,8 @@ export function showTrade() {
 
 export function showChat() {
     setActiveButton('chat');
-    
+
+    document.getElementById('chatButton').textContent = 'CHAT';
 
     let input = document.createElement('input');
     input.id = 'chatInput';
