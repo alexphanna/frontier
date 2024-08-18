@@ -118,13 +118,13 @@ export function join() {
                 const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
                 document.getElementById('buildings').appendChild(building);
             }
-            else if (args[1] == 'city') {
-                const vertex = game.map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
+            else if (args[1] == 'city') {const vertex = game.map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
                 const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
                 let settlements = document.getElementById('buildings').getElementsByClassName('settlement');
                 for (let i = 0; i < settlements.length; i++) {
                     const temp = Building.shapeToPoint(settlements[i].getAttribute('points'), 'settlement');
                     const point = game.map.vertexToStandard(temp.x, temp.y);
+                    console.log(point.row, point.col);
                     if (point.row == parseInt(args[2]) && point.col == parseInt(args[3])) {
                         document.getElementById("buildings").removeChild(settlements[i]);
                         break;
@@ -244,6 +244,12 @@ export function join() {
         }
         else if (args[0] === 'color') {
             myPlayer.color = args[1];
+        }
+        else if (args[0] === 'turn') {
+            game.turn = parseInt(args[1]);
+            if (document.getElementById('buildButton').disabled) {
+                showBuild();
+            }
         }
     }
 }

@@ -36,7 +36,16 @@ export const game = {
     roadsBuilt: 0,
     knightPlayed: false,
     chat: [],
-    players: []
+    players: [],
+    turn: 0,
+}
+
+export function getRound() {
+    return Math.floor(game.turn / game.players.length);
+}
+
+export function getTurnPlayer() {
+    return game.players[getRound() == 1 ? game.players.length - game.turn % game.players.length - 1 : game.turn % game.players.length];
 }
 
 /**

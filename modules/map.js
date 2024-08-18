@@ -205,7 +205,7 @@ export default class Map {
         let row = Math.floor((y - this.topMargin) / (this.circumradius * 2 - (this.circumradius * 2 - this.sideLength) / 2));
 
         if (row < 2) var col = Math.floor((x - this.inradius * ((this.terrainMap[row].length / 2) - row)) / this.inradius);
-        else if (row > 3) col = Math.floor((x + this.inradius * (this.terrainMap[row].length - row)) / this.inradius);
+        else if (row > 3) col = Math.floor((x + this.inradius * (this.terrainMap[row !== this.terrainMap.length ? row : row - 1].length - row)) / this.inradius);
         else col = x / this.inradius;
 
         return { row, col };

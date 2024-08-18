@@ -1,4 +1,4 @@
-import { game, server, myPlayer, ui } from '../main.js';
+import { game, server, myPlayer, ui, getTurnPlayer, getRound } from '../main.js';
 import { MonopolyInput, ResourceInput, YearOfPlentyInput, removeZeroes } from './ui/notifications.js';
 import { build } from "./actions.js"
 import actionNav from './ui/actionNav.js';
@@ -21,7 +21,12 @@ export function showBuild() {
     let content = document.getElementById('sideContent');
     content.innerHTML = '';
     content.style.textAlign = 'left';
+    content.style.padding = '0px';
+
     for (let player of game.players) {
+        let playerDiv = document.createElement('div');
+        playerDiv.style.padding = '20px';
+        playerDiv.style.backgroundColor = (getTurnPlayer().name === player.name ? '#20202080' : '#FFFFFF00');
         let playerTitle = document.createElement('h2');
         playerTitle.textContent = player.name;
         playerTitle.style.color = player.color;
@@ -33,54 +38,63 @@ export function showBuild() {
         }
         playerPoints.textContent += ')';
         playerTitle.appendChild(playerPoints);
-        content.appendChild(playerTitle);
+        playerDiv.appendChild(playerTitle);
 
         if (player.specials["largestArmy"]) {
             let largestArmy = document.createElement('h3');
             largestArmy.textContent = 'Largest Army';
             largestArmy.style.fontWeight = 'bold';
-            content.appendChild(largestArmy);
+            playerDiv.appendChild(largestArmy);
         }
         
         if (player.specials["longestRoad"]) {
             let longestRoad = document.createElement('h3');
             longestRoad.textContent = 'Longest Road';
             longestRoad.style.fontWeight = 'bold';
-            content.appendChild(longestRoad);
+            playerDiv.appendChild(longestRoad);
         }
 
         let resourcesHeading = document.createElement('h3');
         resourcesHeading.textContent = 'Resources:';
-        content.appendChild(resourcesHeading);
+        playerDiv.appendChild(resourcesHeading);
         if (player.name === myPlayer.name) {
             let resources = document.createElement('ul');
             for (let resource in player.resources) {
                 resources.appendChild(document.createElement('li')).textContent = `${resource.charAt(0).toUpperCase() + resource.slice(1)}: ${player.resources[resource]}`;
             }
-            content.appendChild(resources);
+            playerDiv.appendChild(resources);
         }
         else {
             resourcesHeading.textContent += ` ${player.resources}`;
         }
         let developmentsHeading = document.createElement('h3');
         developmentsHeading.textContent = `Developments: ${myPlayer.name === player.name ? Object.values(player.developments).reduce((a, b) => a + b) : player.developments}`;
-        content.appendChild(developmentsHeading);
+        playerDiv.appendChild(developmentsHeading);
 
         if (player.army > 0) {
             let knights = document.createElement('h3');
             knights.textContent = `Army: ${player.army}`;
-            content.appendChild(knights);
+            playerDiv.appendChild(knights);
         }
 
-        content.appendChild(document.createElement('br'));
+        content.appendChild(playerDiv);
 
-        if (player.name === myPlayer.name) {
+        if (getTurnPlayer().name === myPlayer.name && player.name === myPlayer.name) {
             let actions = new actionNav();
             actions.appendAction('SETTLEMENT', () => { build('settlement'); }, "50%");
             actions.appendAction('CITY', () => { build('city'); }, "50%");
             actions.appendAction('ROAD', () => { build('road'); }, "50%");
             actions.appendAction('DEVELOP', () => { develop(); }, "50%");
             actions.appendAction('END TURN', () => { endTurn(); });
+
+            if (getRound() < 2) {
+                const actionButtons = actions.getElementsByClassName('actionButton');
+                for (let i = 0; i < actionButtons.length; i++) {
+                    if (actionButtons[i].textContent === 'DEVELOP' || actionButtons[i].textContent === 'CITY') {
+                        actionButtons[i].disabled = true;
+                    }
+                }
+            }
 
             document.getElementById('sidebar').appendChild(actions);
 
@@ -134,6 +148,7 @@ export function showTrade() {
     let content = document.getElementById('sideContent');
     content.innerHTML = '';
     content.style.textAlign = 'center';
+    content.style.padding = '20px';
 
     let youResourceInput = new ResourceInput(game.players.find(player => player.name === myPlayer.name).resources, 0);
     content.appendChild(youResourceInput);
@@ -147,13 +162,27 @@ export function showTrade() {
     let themResourceInput = new ResourceInput();
     content.appendChild(themResourceInput);
     
-    let selectButton = new PlayerSelectButton('DOMESTIC', () => {
+    const sendTrade = (recipients) => {
         let you = removeZeroes(youResourceInput.resources);
         let them = removeZeroes(themResourceInput.resources);
-        server.send(`trade domestic ${myPlayer.name} ${JSON.stringify(removeZeroes(you))} ${JSON.stringify(selectButton.selectedOptions)} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
+        server.send(`trade domestic ${myPlayer.name} ${JSON.stringify(removeZeroes(you))} ${recipients} ${JSON.stringify(removeZeroes(them))} ${Math.random().toString(36).substring(2, 9)}`);
         showTrade();
-    });
-    content.appendChild(selectButton);
+    }
+
+    if (getTurnPlayer().name === myPlayer.name) {
+        let selectButton = new PlayerSelectButton('DOMESTIC', () => {
+            sendTrade(JSON.stringify(selectButton.selectedOptions));
+        });
+        content.appendChild(selectButton);
+    }
+    else {
+        let button = document.createElement('button');
+        button.textContent = 'DOMESTIC';
+        button.addEventListener('click', () => {
+            sendTrade(JSON.stringify([getTurnPlayer().name]));
+        });
+        content.appendChild(button);
+    }
 
     let maritime = document.createElement('button');
     maritime.textContent = 'MARITIME';
@@ -168,6 +197,7 @@ export function showTrade() {
 
 export function showChat() {
     setActiveButton('chat');
+    document.getElementById('sideContent').style.padding = '20px';
 
     document.getElementById('chatButton').textContent = 'CHAT';
 

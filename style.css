@@ -95,8 +95,16 @@ ul li {
     width: 100%;
 }
 
+.actionButton:disabled {
+    cursor: default;
+    background-color: #00000000;
+    color: #80808080;
+}
+
 div#sideContent {
-    padding: 0px;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
 }
 
 div#sidebar {
@@ -106,13 +114,6 @@ div#sidebar {
     height: 100%;
     top: 0;
     width: 300px;
-}
-
-div#sideContent {
-    padding: 20px;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
 }
 
 div#navbar {
