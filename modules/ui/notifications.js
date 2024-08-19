@@ -1,6 +1,6 @@
 import { game, myPlayer, server } from '../../main.js';
 
-function createButton(text) {
+export function createButton(text) {
     let button = document.createElement('button');
     button.textContent = text;
     button.style.margin = '10px';
@@ -142,7 +142,7 @@ export class TradeNotification extends Notification {
         span.textContent = `: ${TradeNotification.stringifyResources(JSON.parse(them))} → ${TradeNotification.stringifyResources(JSON.parse(you))}`;
         this.heading.appendChild(span);
         
-        const removeTradeOffer = () => this.notifications.removeChild(this);
+        const removeTradeOffer = () => this.remove();
 
         let buttons = document.createElement('div');
         buttons.style.display = 'flex';
@@ -221,31 +221,7 @@ export class MonopolyInput extends Notification {
             });
             this.appendChild(button);
         }
-
-        this.notifications.appendChild(this);
     }
 }
 
 customElements.define('monopoly-input', MonopolyInput, { extends: 'div' });
-
-export class KnightInput extends Notification {
-    constructor(names) {
-        super("Knight", 0);
-
-        this.heading.style.fontWeight = 'bold';
-        
-        for (let name of names) {
-            let playerButton = createButton(name.toUpperCase());
-            playerButton.style.color = game.players.find(myPlayer => myPlayer.name === name).color;
-            playerButton.addEventListener('click', () => {
-                server.send(`knight ${name}`);
-                this.notifications.removeChild(this);
-            });
-            this.appendChild(playerButton);
-        }
-
-        this.notifications.appendChild(this);
-    }
-}
-
-customElements.define('knight-input', KnightInput, { extends: 'div' });

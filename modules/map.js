@@ -1,4 +1,5 @@
 import { game, server } from '../main.js';
+import { createRobber } from './ui/robber.js';
 
 export default class Map {
     constructor(svg, terrainMap, numberMap, harborMap) {
@@ -7,10 +8,10 @@ export default class Map {
         this.harborMap = harborMap;
 
         // Draw the map
-        const maxLength = Math.max(...this.terrainMap.map(row => row.length));
+        this.maxLength = Math.max(...this.terrainMap.map(row => row.length));
 
-        if (maxLength > this.terrainMap.length * (Math.sqrt(3) / 2)) {
-            this.inradius = 100 / (maxLength * 2);
+        if (this.maxLength > this.terrainMap.length * (Math.sqrt(3) / 2)) {
+            this.inradius = 100 / (this.maxLength * 2);
             this.sideLength = this.inradius * 2 / Math.sqrt(3)
             this.circumradius = this.sideLength;
             this.topMargin = (100 - (this.circumradius * ((this.terrainMap.length - 1) * 2 - 1))) / 4;
@@ -21,7 +22,7 @@ export default class Map {
             this.sideLength = this.circumradius;
             this.inradius = this.sideLength * Math.sqrt(3) / 2;
             this.topMargin = 0;
-            this.leftMargin = (100 - (maxLength * 2 * this.inradius)) / 2;
+            this.leftMargin = (100 - (this.maxLength * 2 * this.inradius)) / 2;
         }
 
         let tiles = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -45,7 +46,7 @@ export default class Map {
 
         for (let i = 0; i < this.terrainMap.length; i++) {
             for (let j = 0; j < this.terrainMap[i].length; j++) {
-                let tile = Map.createTile(j * this.inradius * 2 + this.inradius * (maxLength + 1 - this.terrainMap[i].length) + this.leftMargin, i * (this.sideLength + Math.sqrt(Math.pow(this.sideLength, 2) - Math.pow(this.inradius, 2))) + this.circumradius + this.topMargin, this.inradius * 2, this.terrainMap[i][j], this.numberMap[i][j]);
+                let tile = Map.createTile(j * this.inradius * 2 + this.inradius * (this.maxLength + 1 - this.terrainMap[i].length) + this.leftMargin, i * (this.sideLength + Math.sqrt(Math.pow(this.sideLength, 2) - Math.pow(this.inradius, 2))) + this.circumradius + this.topMargin, this.inradius * 2, this.terrainMap[i][j], this.numberMap[i][j]);
                 tile.addEventListener('click', function () {
                     if (game.knightPlayed) {
                         game.knightPlayed = false;
@@ -106,9 +107,7 @@ export default class Map {
         svg.appendChild(cityVertices);
         cityVertices.style.visibility = "hidden";
 
-        this.robber = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        this.robber.setAttribute("r", (this.inradius * 2) / 5);
-        this.robber.setAttribute("fill", "#000000C0");
+        this.robber = createRobber(this.inradius / 2);
         svg.appendChild(this.robber);
 
         server.send('get points');
@@ -189,14 +188,14 @@ export default class Map {
                 continue;
             }
             if (number == 7) {
-                tile.getElementsByTagNameNS("http://www.w3.org/2000/svg", "circle")[0].setAttribute("fill", "#ff4040");
+                tile.getElementsByTagNameNS("http://www.w3.org/2000/svg", "text")[0].setAttribute("fill", "#FF4040");
             }
             else {
                 if (tile.id.endsWith(number)) {
-                    tile.getElementsByTagNameNS("http://www.w3.org/2000/svg", "circle")[0].setAttribute("fill", "#00c0ff");
+                    tile.getElementsByTagNameNS("http://www.w3.org/2000/svg", "text")[0].setAttribute("fill", "#FFFFFF");
                 }
                 else {
-                    tile.getElementsByTagNameNS("http://www.w3.org/2000/svg", "circle")[0].setAttribute("fill", "#ffe0a0");
+                    tile.getElementsByTagNameNS("http://www.w3.org/2000/svg", "text")[0].setAttribute("fill", "#FFFFFF80");
                 }
             }
         }
@@ -246,7 +245,7 @@ export default class Map {
         let tile = document.createElementNS("http://www.w3.org/2000/svg", "g");
         tile.id = `${terrain} ${number}`;
         tile.setAttribute("class", "tile")
-        let hexagon = Map.createHexagon(x, y, width);
+        let hexagon = createHexagon(x, y, width);
         hexagon.classList.add("hexagon");
         const terrainColors = {
             "Hill": "#800000",
@@ -254,42 +253,33 @@ export default class Map {
             "Mountain": "#404040",
             "Field": "#C0C000",
             "Forest": "#004000",
-            "Desert": "#c08040"
+            "Desert": "#C08040"
         }
         hexagon.setAttribute("fill", terrainColors[terrain]);
         hexagon.setAttribute("stroke", "black");
         hexagon.setAttribute("stroke-width", ".5");
         tile.appendChild(hexagon);
         if (terrain != "Desert") {
-            let token = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            token.setAttribute("cx", x);
-            token.setAttribute("cy", y);
-            token.setAttribute("r", width / 5);
-            token.setAttribute("fill", "#ffe0a0");
-            token.setAttribute("stroke", "black");
-            token.setAttribute("stroke-width", ".5");
-            tile.appendChild(token);
-    
             let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
             text.classList.add("tokenText");
             text.setAttribute("x", x);
             text.setAttribute("y", y);
-            text.setAttribute("fill", (number == 6 || number == 8 ? "red" : "black"));
-            text.setAttribute("font-size", "5");
+            text.setAttribute("fill", "#FFFFFF80");
+            text.setAttribute("font-size", "6");
             text.textContent = number;
             tile.appendChild(text);
         }
         return tile;
     }
-    static createHexagon(x, y, width) {
-        let hexagon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        let vertices = "";
-        let sideLength = width / 2 * (2 / Math.sqrt(3));
-        for (let i = 0; i < 6; i++) {
-            const angle = 2 * Math.PI / 6 * i - Math.PI / 2;
-            vertices += `${x + sideLength * Math.cos(angle)},${y + sideLength * Math.sin(angle)} `;
-        }
-        hexagon.setAttribute("points", vertices);
-        return hexagon;
+}
+export function createHexagon(x, y, width) {
+    let hexagon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    let vertices = "";
+    let sideLength = width / 2 * (2 / Math.sqrt(3));
+    for (let i = 0; i < 6; i++) {
+        const angle = 2 * Math.PI / 6 * i - Math.PI / 2;
+        vertices += `${x + sideLength * Math.cos(angle)},${y + sideLength * Math.sin(angle)} `;
     }
+    hexagon.setAttribute("points", vertices);
+    return hexagon;
 }

@@ -1,5 +1,5 @@
 import { game, server, myPlayer, ui, getTurnPlayer, getRound } from '../main.js';
-import { MonopolyInput, ResourceInput, YearOfPlentyInput, removeZeroes } from './ui/notifications.js';
+import { Notification, MonopolyInput, ResourceInput, YearOfPlentyInput, removeZeroes } from './ui/notifications.js';
 import { build } from "./actions.js"
 import actionNav from './ui/actionNav.js';
 import { PlayerSelectButton } from './ui/selectButton.js';

@@ -1,7 +1,7 @@
-# Catan
+# Frontier
 A web-based multiplayer game inspired by the game mechanics of [Catan](https://en.wikipedia.org/wiki/Catan). 
 ## Requirements
-- [catan-server](https://github.com/alexphanna/catan-server)
+- [frontier-server](https://github.com/alexphanna/frontier-server)
 - http server
 ## Features
 - Turn-based 4 player multiplayer using the websocket protocol

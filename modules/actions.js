@@ -2,7 +2,8 @@ import { game, myPlayer, server, connect, ui } from '../main.js';
 import Building from './building.js';
 import Map from "./map.js"
 import { showBuild, showChat } from './sidebar.js';
-import { Notification, ErrorNotification, KnightInput, TradeNotification } from './ui/notifications.js';
+import { Notification, ErrorNotification, TradeNotification } from './ui/notifications.js';
+import { RobberInput } from './ui/robber.js';
 
 export function build(type) {
     let svg = document.getElementById('map');
@@ -54,7 +55,13 @@ export function unready() {
 }
 
 function updateLobby(players) {
-    document.getElementById('playersHeading').textContent = `Players (${players.length}/4)`;
+    document.getElementById('playersHeading').textContent = `PLAYERS `;
+
+    let playerCount = document.createElement('span');
+    playerCount.textContent = ` (${players.length}/4)`;
+    playerCount.style.color = '#C0C0C0C0';
+    document.getElementById('playersHeading').appendChild(playerCount);
+
     let playersDiv = document.getElementById('players');
     playersDiv.innerHTML = '';
     for (let player of players) {
@@ -145,15 +152,15 @@ export function join() {
         else if (args[0] === 'robber') {
             game.map.moveRobber(parseInt(args[1]), parseInt(args[2]));
         }
-        else if (args[0] === 'knight') {
+        else if (args[0] === 'rob') {
             if (JSON.parse(args.slice(1)).length === 0) {
                 return;
             }   
             else if (JSON.parse(args.slice(1)).length === 1) {
-                server.send(`knight ${JSON.parse(args.slice(1))[0]}`);
+                server.send(`rob ${JSON.parse(args.slice(1))[0]}`);
             }
             else {
-                ui.notifications.appendChild(new KnightInput(JSON.parse(args.slice(1))));
+                ui.notifications.appendChild(new RobberInput(JSON.parse(args.slice(1))));
             }
         }
         else if (args[0] === 'chat' || args[0] === 'log') {
