@@ -13,21 +13,54 @@
     </div>
     <div id="content">
         <div id="menu" class="interface">
-            <div>
-                <input type="text" placeholder="NAME" style="margin: 15px;" id="name">
-                <br>
-                <input type="text" placeholder="SERVER ADDRESS" style="margin: 15px;" id="address">
-                <br>
-                <button style="margin: 15px;" onclick="join()">JOIN</button>
+            <div style="display: flex; flex-direction: column;">
+                <input type="text" placeholder="NAME" id="name">
+                <input type="text" placeholder="SERVER ADDRESS" id="address">
+                <button onclick="join()">CONNECT</button>
             </div>
         </div>
         <div id="lobby" class="interface" style="visibility: hidden;">
-            <h1 id="playersHeading" style="font-weight: bold">PLAYERS</h1>
-            <br>
-            <div id="players" style="margin: 0px 10px;"></div>
-            <br>
-            <button id="readyButton" onclick="ready()"
-                style="position: absolute; bottom: 0px; right: 0px">READY</button>
+            <div style="width: 100%; padding: 20px;">
+                <h1 id="playersHeading" style="font-weight: bold">PLAYERS</h1>
+                <br>
+                <div id="players" style="margin: 0px 10px;"></div>
+            </div>
+            <div style="width: 350px; background-color: #20202040; display: flex; flex-direction: column; justify-content: space-between; text-align: center;">
+                <h1 id="colorsHeading" style="padding: 20px; font-weight: bold; color: #E0E0E0E0">COLORS</h1>
+                <div id="colors">
+                    <div style="display: flex; justify-content: space-between;">
+                        <div id="#FF0000-container" class="colorButtonContainer">
+                            <button id="#FF0000" class="colorButton" style="background-color: #FF0000;" onclick="setColor('#FF0000')"></button>
+                        </div>
+                        <div id="#00FF00-container" class="colorButtonContainer">
+                            <button id="#00FF00" class="colorButton" style="background-color: #00FF00;" onclick="setColor('#00FF00')"></button>
+                        </div>
+                        <div id="#0000FF-container" class="colorButtonContainer">
+                            <button id="#0000FF" class="colorButton" style="background-color: #0000FF;" onclick="setColor('#0000FF')"></button>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <div id="#FFFF00-container" class="colorButtonContainer">
+                            <button id="#FFFF00" class="colorButton" style="background-color: #FFFF00;" onclick="setColor('#FFFF00')"></button>
+                        </div>
+                        <div id="#00FFFF-container" class="colorButtonContainer">
+                            <button id="#00FFFF" class="colorButton" style="background-color: #00FFFF;" onclick="setColor('#00FFFF')"></button>
+                        </div>
+                        <div id="#FF00FF-container" class="colorButtonContainer">
+                            <button id="#FF00FF" class="colorButton" style="background-color: #FF00FF;" onclick="setColor('#FF00FF')"></button>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <div id="#FF8000-container" class="colorButtonContainer">
+                            <button id="#FF8000" class="colorButton" style="background-color: #FF8000;" onclick="setColor('#FF8000')"></button>
+                        </div>
+                        <div id="#FFFFFF-container" class="colorButtonContainer">
+                            <button id="#FFFFFF" class="colorButton" style="background-color: #FFFFFF;" onclick="setColor('#FFFFFF')"></button>
+                        </div>
+                    </div>
+                </div>
+                <button id="readyButton" onclick="ready()">READY</button>
+            </div>
         </div>
     </div>
     <div id="game" style="visibility: hidden;">

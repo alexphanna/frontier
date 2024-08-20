@@ -135,7 +135,6 @@ div#notifications {
 
 div#lobby,
 div#menu {
-    padding: 30px;
     width: 500px;
     height: 500px;
 }
@@ -149,6 +148,7 @@ div#content {
 }
 
 div#lobby {
+    display: flex;
     width: 750px;
 }
 
@@ -169,13 +169,30 @@ div#menu {
 
 button,
 input {
+    margin: 20px;
     padding: 15px 15px;
-    font-size: 14px;
+    font-size: 16px;
     border: none;
 }
 
 input {
-    color: black;
+    color: white;
+    background-color: transparent;
+    border: 2px solid #80808080;
+    width: 300px;
+}
+
+input::placeholder {
+    color: #808080;
+}
+
+input:focus {
+    outline: none;
+    border: 2px solid #ffffffC0;
+}
+
+input:focus::placeholder {
+    color: #ffffffC0;
 }
 
 input#chatInput {
@@ -183,21 +200,13 @@ input#chatInput {
     width: 100%;
     margin: 0px;
     font-size: 14px;
+    border: none;
     border-top: 2px solid #80808080;
     background-color: #00000000;
     min-height: fit-content;
 }
 
-input#chatInput:focus {
-    outline: none;
-}
-
-input#chatInput::placeholder {
-    color: #808080;
-}
-
 button {
-    margin: 20px;
     cursor: pointer;
     font-weight: bold;
     background-color: #20202080;
@@ -215,7 +224,8 @@ button:disabled {
     color: #C0C0C080;
 }
 
-.smallButton, .checkButton {
+.smallButton,
+.checkButton {
     border: none;
     width: 30px;
     height: 30px;
@@ -232,7 +242,8 @@ button:disabled {
     background-color: #80808080;
 }
 
-.smallButton:disabled, .checkButton:disabled {
+.smallButton:disabled,
+.checkButton:disabled {
     background-color: #00000000;
     color: #80808080
 }
@@ -251,4 +262,32 @@ button:disabled {
     width: 100%;
     height: 2px;
     background-color: white;
+}
+
+button.colorButton {
+    width: 42px;
+    height: 42px;
+    margin: 2px;
+}
+
+div.colorButtonContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+    border: 2px solid #80808080;
+    margin: 20px;
+}
+
+div.colorButtonContainer:hover {
+    border: 2px solid #ffffffC0;
+}
+
+div#colors {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding-left: 40px;
+    padding-right: 40px;
 }

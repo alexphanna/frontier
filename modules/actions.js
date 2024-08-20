@@ -62,6 +62,14 @@ function updateLobby(players) {
     playerCount.style.color = '#C0C0C0C0';
     document.getElementById('playersHeading').appendChild(playerCount);
 
+    let colorButtons = document.getElementsByClassName('colorButton');
+    
+    for (let colorButton of colorButtons) {
+        document.getElementById(`${colorButton.id}-container`).style.removeProperty('border-color');
+        colorButton.disabled = false;
+        colorButton.style.backgroundColor = colorButton.id;
+    }
+
     let playersDiv = document.getElementById('players');
     playersDiv.innerHTML = '';
     for (let player of players) {
@@ -70,7 +78,21 @@ function updateLobby(players) {
         playerHeading.style.fontWeight = 'bold';
         playerHeading.textContent = `${player.name}`;
         playersDiv.appendChild(playerHeading);
+
+        for (let colorButton of colorButtons) {
+            if (colorButton.id === player.color) {
+                colorButton.disabled = true;
+                colorButton.style.backgroundColor = colorButton.id.replace(/80/g, '20').replace(/FF/g, '40');
+                if (player.name === myPlayer.name) document.getElementById(`${colorButton.id}-container`).style.borderColor = "#FFFF00C0";
+                else document.getElementById(`${colorButton.id}-container`).style.borderColor = "#80808080"
+            }
+        }
     }
+}
+
+export function setColor(color) {
+    document.getElementById(`${color}-container`).style.borderColor = "#FFFF00C0";
+    server.send(`color ${color}`);
 }
 
 export function join() {

@@ -1,7 +1,8 @@
-import { build, develop, endTurn, ready, unready, join } from "./modules/actions.js"
+import { build, develop, endTurn, ready, unready, join, setColor } from "./modules/actions.js"
 import { showBuild, showTrade, showChat } from "./modules/sidebar.js";
 
 // Expose functions to the global scope
+window.setColor = setColor;
 window.build = build;
 window.develop = develop;
 window.endTurn = endTurn;
