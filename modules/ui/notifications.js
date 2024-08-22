@@ -190,14 +190,12 @@ export class YearOfPlentyInput extends Notification {
         this.heading.style.fontWeight = 'bold';
 
         let selector = new ResourceInput({}, 2);
-        selector.input.style.margin = '10px';
         this.appendChild(selector);
-
 
         let confirmButton = createButton('CONFIRM');
         confirmButton.addEventListener('click', () => {
             server.send(`progress yearOfPlenty ${JSON.stringify(removeZeroes(selector.resources))}`);
-            this.notifications.removeChild(this);
+            this.remove();
         });
 
         this.appendChild(confirmButton);
@@ -217,7 +215,7 @@ export class MonopolyInput extends Notification {
             let button = createButton(resource.toUpperCase());
             button.addEventListener('click', () => {
                 server.send(`progress monopoly ${resource}`);
-                this.notifications.removeChild(this);
+                this.remove();
             });
             this.appendChild(button);
         }

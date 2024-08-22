@@ -82,7 +82,7 @@ function updateLobby(players) {
         for (let colorButton of colorButtons) {
             if (colorButton.id === player.color) {
                 colorButton.disabled = true;
-                colorButton.style.backgroundColor = colorButton.id.replace(/80/g, '20').replace(/FF/g, '40');
+                colorButton.style.backgroundColor = colorButton.id.replace(/80/g, '40').replace(/FF/g, '80');
                 if (player.name === myPlayer.name) document.getElementById(`${colorButton.id}-container`).style.borderColor = "#FFFF00C0";
                 else document.getElementById(`${colorButton.id}-container`).style.borderColor = "#80808080"
             }
@@ -147,7 +147,8 @@ export function join() {
                 const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
                 document.getElementById('buildings').appendChild(building);
             }
-            else if (args[1] == 'city') {const vertex = game.map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
+            else if (args[1] == 'city') {
+                const vertex = game.map.standardToVertex(parseInt(args[2]), parseInt(args[3]));
                 const building = Building.createBuilding(vertex.x, vertex.y, args[4], "black", args[1]);
                 let settlements = document.getElementById('buildings').getElementsByClassName('settlement');
                 for (let i = 0; i < settlements.length; i++) {
@@ -162,6 +163,14 @@ export function join() {
                 document.getElementById('buildings').appendChild(building);
             }
             else if (args[1] === 'road') {
+                if (game.roadBuilding) {
+                    game.roadsBuilt++;
+                    if (game.roadsBuilt == 2) {
+                        game.roadBuilding = false;
+                        game.roadsBuilt = 0;
+                        document.getElementById('edges').style.visibility = "hidden";
+                    }
+                }
                 const edge = game.map.standardToEdge(parseInt(args[2]), parseInt(args[3]));
                 const road = Building.createRoad(edge.x, edge.y, args[4], args[5], "black");
                 document.getElementById('roads').appendChild(road);

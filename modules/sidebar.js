@@ -46,7 +46,7 @@ export function showBuild() {
             largestArmy.style.fontWeight = 'bold';
             playerDiv.appendChild(largestArmy);
         }
-        
+
         if (player.specials["longestRoad"]) {
             let longestRoad = document.createElement('h3');
             longestRoad.textContent = 'Longest Road';
@@ -81,18 +81,21 @@ export function showBuild() {
 
         if (getTurnPlayer().name === myPlayer.name && player.name === myPlayer.name) {
             let actions = new actionNav();
-            actions.appendAction('SETTLEMENT', () => { build('settlement'); }, "50%");
-            actions.appendAction('CITY', () => { build('city'); }, "50%");
-            actions.appendAction('ROAD', () => { build('road'); }, "50%");
-            actions.appendAction('DEVELOP', () => { develop(); }, "50%");
+            actions.appendAction('SETTLEMENT', () => { build('settlement'); }, player.buildings["settlements"], "50%");
+            actions.appendAction('CITY', () => { build('city'); }, player.buildings["cities"], "50%");
+            actions.appendAction('ROAD', () => { build('road'); }, player.buildings["roads"], "50%");
+            actions.appendAction('DEVELOP', () => { develop(); }, -1, "50%");
             actions.appendAction('END TURN', () => { endTurn(); });
 
-            if (getRound() < 2) {
-                const actionButtons = actions.getElementsByClassName('actionButton');
-                for (let i = 0; i < actionButtons.length; i++) {
-                    if (actionButtons[i].textContent === 'DEVELOP' || actionButtons[i].textContent === 'CITY') {
-                        actionButtons[i].disabled = true;
-                    }
+            const actionButtons = actions.getElementsByClassName('actionButton');
+            for (let i = 0; i < actionButtons.length; i++) {
+                if (getRound() < 2 && (actionButtons[i].id === 'developButton' || actionButtons[i].id === 'cityButton')) {
+                    actionButtons[i].disabled = true;
+                }
+                if ((actionButtons[i].id === 'settlementButton' && player.buildings["settlements"] === 0)
+                    || (actionButtons[i].id === 'roadButton' && player.buildings["roads"] === 0)
+                    || (actionButtons[i].id === 'cityButton' && player.buildings["cities"] === 0)) {
+                    actionButtons[i].disabled = true;
                 }
             }
 
@@ -106,7 +109,7 @@ export function showBuild() {
                 }
                 return string.toUpperCase();
             }
-            
+
             for (let i = 0; i < Object.keys(player.developments).length; i++) {
                 if (player.developments[Object.keys(player.developments)[i]] > 0
                     && Object.keys(player.developments)[i] !== 'victoryPoint') {
@@ -132,7 +135,7 @@ export function showBuild() {
                             server.send('progress roadBuilding');
                             game.roadBuilding = true;
                             game.roadsBuilt = 0;
-                            
+
                             build('road');
                             ui.notifications.appendChild(new Notification('Build two roads'));
                         });
@@ -161,7 +164,7 @@ export function showTrade() {
 
     let themResourceInput = new ResourceInput();
     content.appendChild(themResourceInput);
-    
+
     const sendTrade = (recipients) => {
         let you = removeZeroes(youResourceInput.resources);
         let them = removeZeroes(themResourceInput.resources);

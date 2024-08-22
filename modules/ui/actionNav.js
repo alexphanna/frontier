@@ -1,10 +1,17 @@
 class actionButton extends HTMLButtonElement {
-    constructor(action, onclick, width = "100%") {
+    constructor(action, number, onclick, width = "100%") {
         super();
-        this.id = "actions";
+        this.id = action.toLowerCase().replace(' ', '') + 'Button';
         this.classList.add('actionButton');
-        this.style.width = width;
+        this.style.maxWidth = width;
         this.textContent = action;
+        if (number !== -1) {
+            let numberCount = document.createElement('span');
+            numberCount.style.color = '#808080';
+            numberCount.style.paddingLeft = '5px';
+            numberCount.textContent = `(${number})`;
+            this.appendChild(numberCount);
+        }
         this.addEventListener('click', onclick);
     }
 }
@@ -16,8 +23,8 @@ export default class actionNav extends HTMLDivElement {
         super();
     }
     // reduce repeated code in append and prepend
-    appendAction(action, onclick, width = "100%") {
-        const button = new actionButton(action, onclick);
+    appendAction(action, onclick, number = -1, width = "100%") {
+        const button = new actionButton(action, number, onclick);
         let row;
         if (width === "50%") {
             if (this.getElementsByClassName('actionButton').length % 2 === 0) {
@@ -54,8 +61,8 @@ export default class actionNav extends HTMLDivElement {
         }
         row.appendChild(button);
     }
-    prependAction(action, onclick, width = "100%") {
-        const button = new actionButton(action, onclick);
+    prependAction(action, onclick, number = -1, width = "100%") {
+        const button = new actionButton(action, number, onclick);
         let row;
         if (width === "50%") {
             if (this.getElementsByClassName('actionButton').length % 2 === 0) {

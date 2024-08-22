@@ -16,6 +16,73 @@ div#game {
     height: 100vh;
 }
 
+ul li {
+    margin-left: 10px;
+    list-style-type: none;
+    color: #e0e0e0;
+}
+
+/* buttons and inputs */
+
+button,
+input {
+    margin: 20px;
+    padding: 15px 15px;
+    font-size: 15px;
+    border: none;
+}
+
+input {
+    color: white;
+    background-color: transparent;
+    border: 2px solid #80808080;
+    width: 300px;
+}
+
+input::placeholder {
+    color: #808080;
+}
+
+input:focus {
+    outline: none;
+    border: 2px solid #ffffffC0;
+}
+
+input:focus::placeholder {
+    color: #ffffffC0;
+}
+
+input#chatInput {
+    color: white;
+    width: 100%;
+    margin: 0px;
+    font-size: 14px;
+    border: none;
+    border-top: 2px solid #80808080;
+    background-color: #00000000;
+    min-height: fit-content;
+}
+
+button {
+    cursor: pointer;
+    font-weight: bold;
+    background-color: #20202080;
+    color: white;
+}
+
+button:hover {
+    background-color: #ffffffC0;
+    color: black;
+}
+
+button:disabled {
+    cursor: default;
+    background-color: #00000000;
+    color: #C0C0C080;
+}
+
+/* svg */
+
 svg {
     /* border: 1px solid #ff0000; */
     position: absolute;
@@ -45,12 +112,6 @@ text {
     dominant-baseline: central;
 }
 
-ul li {
-    margin-left: 10px;
-    list-style-type: none;
-    color: #e0e0e0;
-}
-
 .interface {
     background-color: #20202080;
     backdrop-filter: blur(4px);
@@ -59,6 +120,8 @@ ul li {
     position: fixed;
     z-index: 1;
 }
+
+/* navigation */
 
 .nav {
     display: flex;
@@ -79,6 +142,8 @@ ul li {
     background-color: #00000000;
     color: white;
 }
+
+/* action navigation */
 
 .actionNav {
     display: flex;
@@ -165,63 +230,6 @@ div#menu {
     display: flex;
     flex-direction: column;
     margin-bottom: 20px;
-}
-
-button,
-input {
-    margin: 20px;
-    padding: 15px 15px;
-    font-size: 16px;
-    border: none;
-}
-
-input {
-    color: white;
-    background-color: transparent;
-    border: 2px solid #80808080;
-    width: 300px;
-}
-
-input::placeholder {
-    color: #808080;
-}
-
-input:focus {
-    outline: none;
-    border: 2px solid #ffffffC0;
-}
-
-input:focus::placeholder {
-    color: #ffffffC0;
-}
-
-input#chatInput {
-    color: white;
-    width: 100%;
-    margin: 0px;
-    font-size: 14px;
-    border: none;
-    border-top: 2px solid #80808080;
-    background-color: #00000000;
-    min-height: fit-content;
-}
-
-button {
-    cursor: pointer;
-    font-weight: bold;
-    background-color: #20202080;
-    color: white;
-}
-
-button:hover {
-    background-color: #ffffffC0;
-    color: black;
-}
-
-button:disabled {
-    cursor: default;
-    background-color: #00000000;
-    color: #C0C0C080;
 }
 
 .smallButton,
