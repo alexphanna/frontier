@@ -2,7 +2,7 @@ import { game, myPlayer, server, connect, ui } from '../main.js';
 import Building from './building.js';
 import Map from "./map.js"
 import { showBuild, showChat } from './sidebar.js';
-import { Notification, ErrorNotification, TradeNotification } from './ui/notifications.js';
+import { Notification, ErrorNotification, TradeNotification, DiscardInput } from './ui/notifications.js';
 import { RobberInput } from './ui/robber.js';
 
 export function build(type) {
@@ -216,9 +216,6 @@ export function join() {
                 document.getElementById('game').style.visibility = 'visible';
                 showBuild();
             }
-            else if (args[1] === 'turn') {
-                // document.getElementById('actions').style.visibility = 'visible';
-            }
         }
         else if (args[0] === 'roll') {
             game.map.highlightTokens(parseInt(args[1]));
@@ -288,6 +285,9 @@ export function join() {
             if (document.getElementById('buildButton').disabled) {
                 showBuild();
             }
+        }
+        else if (args[0] === 'discard') {
+            ui.notifications.appendChild(new DiscardInput(JSON.parse(args[1])));
         }
     }
 }

@@ -17,7 +17,7 @@ export function removeZeroes(obj) {
 }
 
 export class ResourceInput extends HTMLDivElement {
-    constructor(limits = {}, limit = 0) {
+    constructor(limits = {}, max = 0,) {
         super();
 
         this.resources = {
@@ -48,7 +48,13 @@ export class ResourceInput extends HTMLDivElement {
                 this.resources[resource]--;
                 minusButton.disabled = this.resources[resource] === 0;
                 resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + this.resources[resource];
-                if (limit != 0) {
+                if (limits != {} && max != 0) {
+                    const plusButtons = this.getElementsByClassName('plusButton');
+                    for (let i = 0; i < plusButtons.length; i++) {
+                        plusButtons[i].disabled = Object.values(this.resources).reduce((a, b) => a + b) === max || this.resources[Object.keys(this.resources)[i]] === limits[Object.keys(this.resources)[i]];
+                    }
+                }
+                else if (max != 0) {
                     for (let button of this.getElementsByClassName('plusButton')) {
                         button.disabled = false;
                     }
@@ -67,13 +73,19 @@ export class ResourceInput extends HTMLDivElement {
                 this.resources[resource]++;
                 minusButton.disabled = this.resources[resource] === 0;
                 resourceHeading.textContent = resource.charAt(0).toUpperCase() + resource.slice(1) + ': ' + this.resources[resource];
-                if (limit != 0) {
-                    for (let button of this.getElementsByClassName('plusButton')) {
-                        button.disabled = Object.values(this.resources).reduce((a, b) => a + b) === limit;
+                if (limits != {} && max != 0) {
+                    const plusButtons = this.getElementsByClassName('plusButton');
+                    for (let i = 0; i < plusButtons.length; i++) {
+                        plusButtons[i].disabled = Object.values(this.resources).reduce((a, b) => a + b) === max || this.resources[Object.keys(this.resources)[i]] === limits[Object.keys(this.resources)[i]];
                     }
                 }
                 else if (limits != {}) {
                     plusButton.disabled = this.resources[resource] === limits[resource];
+                }
+                else if (max != 0) {
+                    for (let button of this.getElementsByClassName('plusButton')) {
+                        button.disabled = Object.values(this.resources).reduce((a, b) => a + b) === max;
+                    }
                 }
             });
             resourceButtons.appendChild(plusButton);
@@ -203,6 +215,27 @@ export class YearOfPlentyInput extends Notification {
 }
 
 customElements.define('year-of-plenty-input', YearOfPlentyInput, { extends: 'div' });
+
+export class DiscardInput extends Notification {
+    constructor(resources) {
+        super(`Discard ${Object.values(resources).reduce((a, b) => a + b) - 7}`, 0);
+
+        this.heading.style.fontWeight = 'bold';
+
+        let selector = new ResourceInput(resources, Object.values(resources).reduce((a, b) => a + b) - 7);
+        this.appendChild(selector);
+
+        let confirmButton = createButton('CONFIRM');
+        confirmButton.addEventListener('click', () => {
+            server.send(`discard ${JSON.stringify(removeZeroes(selector.resources))}`);
+            this.remove();
+        });
+
+        this.appendChild(confirmButton);
+    }
+}
+
+customElements.define('discard-input', DiscardInput, { extends: 'div' });
 
 export class MonopolyInput extends Notification {
     constructor() {
