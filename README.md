@@ -9,7 +9,7 @@ A web-based multiplayer game inspired by the game mechanics of [Catan](https://e
 - [frontier-server](https://github.com/alexphanna/frontier-server)
 ## Screenshots
 <div style="display: flex">
-    <img src="screenshots/connect.png" width="50%" />
-    <img src="screenshots/lobby.png" width="50%" />
+    <img src="screenshots/connect.png" width="49%" />
+    <img src="screenshots/lobby.png" width="49%" />
 </div>
 <img src="screenshots/game.png"/>
