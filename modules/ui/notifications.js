@@ -197,7 +197,7 @@ customElements.define('trade-notification', TradeNotification, { extends: 'div' 
 
 export class YearOfPlentyInput extends Notification {
     constructor() {
-        super("Year of Plenty", 0);
+        super("Year of Plenty: choose 2 resources to take from the bank.", 0);
 
         this.heading.style.fontWeight = 'bold';
 
@@ -218,7 +218,7 @@ customElements.define('year-of-plenty-input', YearOfPlentyInput, { extends: 'div
 
 export class DiscardInput extends Notification {
     constructor(resources) {
-        super(`Discard ${Object.values(resources).reduce((a, b) => a + b) - 7}`, 0);
+        super(`You have more than 7 resources, discard ${Object.values(resources).reduce((a, b) => a + b) - 7} of your resources.`, 0);
 
         this.heading.style.fontWeight = 'bold';
 
@@ -239,7 +239,7 @@ customElements.define('discard-input', DiscardInput, { extends: 'div' });
 
 export class MonopolyInput extends Notification {
     constructor() {
-        super("Monopoly", 0);
+        super("Monopoly: choose 1 resource to take all of from every player.", 0);
 
         this.heading.style.fontWeight = 'bold';
 
